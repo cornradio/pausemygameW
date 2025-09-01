@@ -1,0 +1,5 @@
+notepad.exe
+calc.exe
+chrome.exe
+devenv.exe
+explorer.exe

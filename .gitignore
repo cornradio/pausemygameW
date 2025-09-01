@@ -1,0 +1,7 @@
+bin/
+.vs/
+obj/
+ts5x5.ico
+main3.py
+game_database.json
+hotkeys.json
