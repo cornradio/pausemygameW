@@ -863,6 +863,60 @@ namespace WpfApp1
             LoadConfig();
         }
 
+        private void AddProgram_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 使用深色对话框获取程序名
+                var dialog = new AddProgramWindow { Owner = this };
+                bool? result = dialog.ShowDialog();
+                if (result != true)
+                {
+                    return;
+                }
+                string exeName = dialog.EnteredExeName;
+
+                // 确保配置文件存在
+                if (!File.Exists(configFile))
+                {
+                    File.WriteAllText(configFile, "");
+                }
+
+                // 读取现有列表，避免重复
+                var lines = new List<string>(File.ReadAllLines(configFile));
+                bool exists = false;
+                foreach (var line in lines)
+                {
+                    if (string.Equals(line.Trim(), exeName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (!exists)
+                {
+                    lines.Add(exeName);
+                    File.WriteAllLines(configFile, lines);
+                }
+
+                // 重新加载配置并选中新项
+                LoadConfig();
+                for (int i = 0; i < ProgramListBox.Items.Count; i++)
+                {
+                    if (string.Equals(ProgramListBox.Items[i]?.ToString(), exeName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        ProgramListBox.SelectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                WPFMessageBox.Show($"添加程序失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void EditConfig_Click(object sender, RoutedEventArgs e)
         {
             try

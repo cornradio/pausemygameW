@@ -35,6 +35,7 @@
         <!-- 菜单栏 -->
         <Menu Background="#3c3f41" Foreground="#ffffff" Grid.Row="0">
             <MenuItem Header="File" Foreground="#ffffff">
+                <MenuItem Header="Add" Click="AddProgram_Click" Foreground="#000000"/>
                 <MenuItem Header="Reload Config" Click="ReloadConfig_Click" Foreground="#000000"/>
                 <MenuItem Header="Edit Config" Click="EditConfig_Click" Foreground="#000000"/>
                 <MenuItem Header="Show Database" Click="ShowDatabase_Click" Foreground="#000000"/>
