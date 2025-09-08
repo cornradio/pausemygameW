@@ -53,13 +53,14 @@
             </MenuItem>
             <MenuItem Header="Help" Foreground="#ffffff">
                 <MenuItem Header="GitHub" Click="OpenGitHub_Click" Foreground="#000000"/>
+                <MenuItem Header="pssuspend" Click="OpenPssuspend_Click" Foreground="#000000"/>
             </MenuItem>
         </Menu>
         
         <!-- 主内容区域 -->
         <Grid Grid.Row="1" Margin="10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="Auto" MinWidth="250"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             
@@ -75,10 +76,12 @@
                              Background="#3c3f41" 
                              Foreground="#ffffff"
                              BorderThickness="0"
+                             MinWidth="230"
+                             HorizontalContentAlignment="Stretch"
                              SelectionChanged="ProgramListBox_SelectionChanged">
                         <ListBox.Resources>
                             <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="10,5"/>
+                                <Setter Property="Padding" Value="10,8"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">

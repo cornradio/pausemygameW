@@ -964,11 +964,21 @@ namespace WpfApp1
             Process.Start("taskmgr.exe");
         }
 
+        private void OpenPssuspend_Click(object sender, RoutedEventArgs e)
+        {
+           //https://learn.microsoft.com/zh-tw/sysinternals/downloads/pssuspend
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://learn.microsoft.com/zh-tw/sysinternals/downloads/pssuspend",
+                UseShellExecute = true
+            });
+        }
+
         private void OpenGitHub_Click(object sender, RoutedEventArgs e)
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = "https://github.com/cornradio/pausemygame",
+                FileName = "https://github.com/cornradio/pausemygameW",
                 UseShellExecute = true
             });
         }

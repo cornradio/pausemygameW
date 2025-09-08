@@ -25,8 +25,6 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button x:Name="OkButton" Content="确定" Width="90" Height="28" Margin="0,0,8,0"
                     Background="#3c3f41" Foreground="#FFFFFF" Click="OkButton_Click"/>
-            <Button Content="取消" Width="90" Height="28"
-                    Background="#3c3f41" Foreground="#FFFFFF" Click="CancelButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>

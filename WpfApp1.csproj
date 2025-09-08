@@ -7,14 +7,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon>ts5x5.ico</ApplicationIcon>
+    <ApplicationIcon>Babasse-Old-School-Time-Machine.ico</ApplicationIcon>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="ts5x5.ico" />
+    <Content Include="Babasse-Old-School-Time-Machine.ico" />
   </ItemGroup>
 
   <ItemGroup>
