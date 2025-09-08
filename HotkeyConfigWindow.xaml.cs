@@ -6,6 +6,7 @@ using System.Windows.Controls;
 // 明确指定使用的类型，避免命名冲突
 using WPFKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using WPFTextBox = System.Windows.Controls.TextBox;
+using System.Windows.Interop;
 
 namespace WpfApp1
 {
@@ -33,10 +34,10 @@ namespace WpfApp1
         private void HotkeyTextBox_KeyDown(object sender, WPFKeyEventArgs e)
         {
             e.Handled = true;
-            
+
             WPFTextBox textBox = sender as WPFTextBox;
             string hotkeyType = textBox.Tag.ToString();
-            
+
             // 获取修饰键
             List<string> modifiers = new List<string>();
             if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
@@ -47,25 +48,40 @@ namespace WpfApp1
                 modifiers.Add("Shift");
             if (Keyboard.IsKeyDown(Key.LWin) || Keyboard.IsKeyDown(Key.RWin))
                 modifiers.Add("Win");
-            
+
             // 确保至少有一个修饰键
             if (modifiers.Count == 0)
                 return;
-            
+
             // 获取主键
-            string keyString = e.Key.ToString();
-            
+            Key currentKey = e.Key;
+            if (currentKey == Key.System)
+            {
+                currentKey = e.SystemKey;
+            }
+
             // 忽略修饰键本身
-            if (keyString == "LeftCtrl" || keyString == "RightCtrl" ||
-                keyString == "LeftAlt" || keyString == "RightAlt" ||
-                keyString == "LeftShift" || keyString == "RightShift" ||
-                keyString == "LWin" || keyString == "RWin")
+            if (currentKey == Key.LeftCtrl || currentKey == Key.RightCtrl ||
+                currentKey == Key.LeftAlt || currentKey == Key.RightAlt ||
+                currentKey == Key.LeftShift || currentKey == Key.RightShift ||
+                currentKey == Key.LWin || currentKey == Key.RWin)
                 return;
-            
+
+            string keyString = currentKey.ToString();
             // 组合热键字符串
             string hotkeyString = string.Join("+", modifiers) + "+" + keyString;
+
+            // 检查热键是否已被其他功能使用
+            foreach (var entry in tempHotkeys)
+            {
+                if (entry.Key != hotkeyType && entry.Value.Equals(hotkeyString, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+
             textBox.Text = hotkeyString;
-            
+
             // 更新临时热键配置
             tempHotkeys[hotkeyType] = hotkeyString;
         }
