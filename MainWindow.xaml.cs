@@ -217,10 +217,17 @@ namespace WpfApp1
         {
             try
             {
+                // 更新状态显示
+                StatusLabel.Text = $"程序未运行";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(120, 120, 120));
                 // 首先尝试从运行中的进程获取路径
                 Process[] processes = Process.GetProcessesByName(IOPath.GetFileNameWithoutExtension(exeName));
                 if (processes.Length > 0)
                 {
+                                            
+                    // 更新状态显示
+                    StatusLabel.Text = $"✓ 程序运行中";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
                     return processes[0].MainModule.FileName;
                 }
                 
@@ -359,10 +366,7 @@ namespace WpfApp1
                             Margin = new Thickness(0, 2, 0, 0)
                         };
                         IconPanel.Children.Add(nameLabel);
-                        
-                        // 更新状态显示
-                        StatusLabel.Text = $"✓ {exeName} (运行中)";
-                        StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
+
                         
                         // 更新数据库
                         UpdateDatabase(exeName, exePath, iconImage);
