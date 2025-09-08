@@ -18,6 +18,7 @@ using System.Management;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using System.Media;
 
 // 明确指定使用的类型，避免命名冲突
 using WinForms = System.Windows.Forms;
@@ -514,6 +515,9 @@ namespace WpfApp1
 
         private void PauseGame_Click(object sender, RoutedEventArgs e)
         {
+            // 播放暂停音效 - 使用更有感觉的音效
+            PlayButtonSound("pause");
+            
             string gameName = GetSelectedGame();
             if (gameName != null)
             {
@@ -569,6 +573,9 @@ namespace WpfApp1
 
         private void ResumeGame_Click(object sender, RoutedEventArgs e)
         {
+            // 播放恢复音效 - 使用更有感觉的音效
+            PlayButtonSound("resume");
+            
             string gameName = GetSelectedGame();
             if (gameName != null)
             {
@@ -799,8 +806,79 @@ namespace WpfApp1
         
         #endregion
 
+        // 播放按钮音效的方法
+        private void PlayButtonSound(string action)
+        {
+            try
+            {
+                // 使用更有感觉的系统音效
+                switch (action.ToLower())
+                {
+                    case "pause":
+                        // 暂停 - 使用Windows关机音效的变体
+                        System.Media.SoundPlayer player1 = new System.Media.SoundPlayer(@"C:\Windows\Media\Windows Shutdown.wav");
+                        if (File.Exists(@"C:\Windows\Media\Windows Shutdown.wav"))
+                        {
+                            player1.Play();
+                        }
+                        else
+                        {
+                            SystemSounds.Hand.Play();
+                        }
+                        break;
+                    case "resume":
+                        // 恢复 - 使用Windows启动音效
+                        System.Media.SoundPlayer player2 = new System.Media.SoundPlayer(@"C:\Windows\Media\Windows Logon.wav");
+                        if (File.Exists(@"C:\Windows\Media\Windows Logon.wav"))
+                        {
+                            player2.Play();
+                        }
+                        else
+                        {
+                            SystemSounds.Asterisk.Play();
+                        }
+                        break;
+                    case "kill":
+                        // 终止 - 使用Windows错误音效
+                        System.Media.SoundPlayer player3 = new System.Media.SoundPlayer(@"C:\Windows\Media\Windows Critical Stop.wav");
+                        if (File.Exists(@"C:\Windows\Media\Windows Critical Stop.wav"))
+                        {
+                            player3.Play();
+                        }
+                        else
+                        {
+                            SystemSounds.Exclamation.Play();
+                        }
+                        break;
+                    case "launch":
+                        // 启动 - 使用Windows通知音效
+                        System.Media.SoundPlayer player4 = new System.Media.SoundPlayer(@"C:\Windows\Media\Windows Notify.wav");
+                        if (File.Exists(@"C:\Windows\Media\Windows Notify.wav"))
+                        {
+                            player4.Play();
+                        }
+                        else
+                        {
+                            SystemSounds.Question.Play();
+                        }
+                        break;
+                    default:
+                        SystemSounds.Beep.Play();
+                        break;
+                }
+            }
+            catch (Exception)
+            {
+                // 如果播放失败，使用默认系统音效
+                SystemSounds.Beep.Play();
+            }
+        }
+
         private void KillGame_Click(object sender, RoutedEventArgs e)
         {
+            // 播放终止音效 - 使用更有感觉的音效
+            PlayButtonSound("kill");
+            
             string gameName = GetSelectedGame();
             if (gameName != null)
             {
@@ -819,6 +897,9 @@ namespace WpfApp1
 
         private void LaunchGame_Click(object sender, RoutedEventArgs e)
         {
+            // 播放启动音效 - 使用更有感觉的音效
+            PlayButtonSound("launch");
+            
             string gameName = GetSelectedGame();
             if (gameName != null)
             {
