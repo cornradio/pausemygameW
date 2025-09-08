@@ -6,3 +6,5 @@ main3.py
 game_database.json
 hotkeys.json
 pausedexe.txt
+.vscode/tasks.json
+.vscode/launch.json
