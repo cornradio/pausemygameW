@@ -38,30 +38,34 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <!-- 菜单栏 -->
-        <Menu Background="#3c3f41" Foreground="#ffffff" Grid.Row="0">
-            <MenuItem Header="File" Foreground="#ffffff">
-                <MenuItem Header="Add" Click="AddProgram_Click" Foreground="#000000"/>
-                <MenuItem Header="Reload Config" Click="ReloadConfig_Click" Foreground="#000000"/>
-                <MenuItem Header="Edit Config" Click="EditConfig_Click" Foreground="#000000"/>
-                <MenuItem Header="Show Database" Click="ShowDatabase_Click" Foreground="#000000"/>
-                <Separator/>
-                <MenuItem Header="Exit" Click="Exit_Click" Foreground="#000000"/>
-            </MenuItem>
-            <MenuItem Header="Tools" Foreground="#ffffff">
-                <MenuItem Header="Task Manager" Click="OpenTaskManager_Click" Foreground="#000000"/>
-            </MenuItem>
-            <MenuItem Header="Hotkeys" Foreground="#ffffff">
-                <MenuItem x:Name="PauseHotkeyMenuItem" Header="Pause (Ctrl+Alt+P)" Click="PauseGame_Click" Foreground="#000000"/>
-                <MenuItem x:Name="ResumeHotkeyMenuItem" Header="Resume (Ctrl+Alt+R)" Click="ResumeGame_Click" Foreground="#000000"/>
-                <Separator/>
-                <MenuItem Header="Configure Hotkeys" Click="ConfigHotkeys_Click" Foreground="#000000"/>
-            </MenuItem>
-            <MenuItem Header="Help" Foreground="#ffffff">
-                <MenuItem Header="GitHub" Click="OpenGitHub_Click" Foreground="#000000"/>
-                <MenuItem Header="pssuspend" Click="OpenPssuspend_Click" Foreground="#000000"/>
-            </MenuItem>
-        </Menu>
+        <!-- 菜单栏和全屏按钮 -->
+        <Grid Grid.Row="0" Background="#3c3f41">
+            <Menu Background="Transparent" Foreground="#ffffff">
+                <MenuItem Header="File" Foreground="#ffffff">
+                    <MenuItem Header="Add" Click="AddProgram_Click" Foreground="#000000"/>
+                    <MenuItem Header="Reload Config" Click="ReloadConfig_Click" Foreground="#000000"/>
+                    <MenuItem Header="Edit Config" Click="EditConfig_Click" Foreground="#000000"/>
+                    <MenuItem Header="Show Database" Click="ShowDatabase_Click" Foreground="#000000"/>
+                    <Separator/>
+                    <MenuItem Header="Exit" Click="Exit_Click" Foreground="#000000"/>
+                </MenuItem>
+                <MenuItem Header="Tools" Foreground="#ffffff">
+                    <MenuItem Header="Task Manager" Click="OpenTaskManager_Click" Foreground="#000000"/>
+                </MenuItem>
+                <MenuItem Header="Hotkeys" Foreground="#ffffff">
+                    <MenuItem x:Name="PauseHotkeyMenuItem" Header="Pause (Ctrl+Alt+P)" Click="PauseGame_Click" Foreground="#000000"/>
+                    <MenuItem x:Name="ResumeHotkeyMenuItem" Header="Resume (Ctrl+Alt+R)" Click="ResumeGame_Click" Foreground="#000000"/>
+                    <Separator/>
+                    <MenuItem Header="Configure Hotkeys" Click="ConfigHotkeys_Click" Foreground="#000000"/>
+                </MenuItem>
+                <MenuItem Header="Help" Foreground="#ffffff">
+                    <MenuItem Header="GitHub" Click="OpenGitHub_Click" Foreground="#000000"/>
+                    <MenuItem Header="pssuspend" Click="OpenPssuspend_Click" Foreground="#000000"/>
+                </MenuItem>
+            </Menu>
+            <Button Content="⛶" Click="ToggleFullScreen_Click" HorizontalAlignment="Right" VerticalAlignment="Top" Width="30" Height="20" Background="Transparent" Foreground="White" BorderThickness="0" Margin="0,0,35,0" ToolTip="Toggle Full Screen"/>
+            <Button Content="X" Click="Exit_Click" HorizontalAlignment="Right" VerticalAlignment="Top" Width="30" Height="20" Background="Transparent" Foreground="Red" BorderThickness="0" Margin="0,0,5,0" ToolTip="exxit"/>
+        </Grid>
         
         <!-- 主内容区域 -->
         <Grid Grid.Row="1" Margin="10">

@@ -1127,6 +1127,19 @@ namespace WpfApp1
         {
             Close();
         }
+        private void ToggleFullScreen_Click(object sender, RoutedEventArgs e)
+        {
+            if (WindowState == WindowState.Normal)
+            {
+                WindowStyle = WindowStyle.None;
+                ResizeMode = ResizeMode.NoResize;
+                WindowState = WindowState.Maximized;
+            }
+            else
+            {
+                WindowState = WindowState.Normal;
+            }
+        }
 
         #endregion
     }
@@ -1136,4 +1149,5 @@ namespace WpfApp1
         public string ExePath { get; set; }
         public string IconBase64 { get; set; }
     }
+
 }
