@@ -75,6 +75,9 @@ namespace WpfApp1
                 UnregisterHotKey(new System.Windows.Interop.WindowInteropHelper(this).Handle, HOTKEY_ID_PAUSE);
                 UnregisterHotKey(new System.Windows.Interop.WindowInteropHelper(this).Handle, HOTKEY_ID_RESUME);
             };
+
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
         }
 
         #region 数据库操作
@@ -1138,6 +1141,13 @@ namespace WpfApp1
             else
             {
                 WindowState = WindowState.Normal;
+            }
+        }
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                this.DragMove();
             }
         }
 
