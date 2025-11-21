@@ -943,9 +943,102 @@ namespace WpfApp1
             }
         }
 
+        private void DeleteGame_Click(object sender, RoutedEventArgs e)
+        {
+            string gameName = GetSelectedGame();
+            if (string.IsNullOrEmpty(gameName))
+            {
+                WPFMessageBox.Show("Please select a game to delete.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var result = WPFMessageBox.Show($"Are you sure you want to delete '{gameName}' from the list?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                if (File.Exists(configFile))
+                {
+                    var lines = File.ReadAllLines(configFile).Where(l => !string.Equals(l.Trim(), gameName, StringComparison.OrdinalIgnoreCase)).ToList();
+                    File.WriteAllLines(configFile, lines);
+                    LoadConfig();
+                    StatusLabel.Text = $"Deleted {gameName}";
+                }
+            }
+
+        }
+
         private void ReloadConfig_Click(object sender, RoutedEventArgs e)
         {
             LoadConfig();
+        }
+
+        private void SearchProcess_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 获取所有进程并按内存使用量排序
+                var processes = Process.GetProcesses()
+                    .OrderByDescending(p => p.WorkingSet64)
+                    .Take(10) // 取前10个
+                    .Select(p => new ProcessItem
+                    {
+                        Name = p.ProcessName,
+                        MemoryUsage = $"{(p.WorkingSet64 / 1024 / 1024)} MB"
+                    })
+                    .ToList();
+
+                var dialog = new ProcessSelectionWindow(processes) { Owner = this };
+                if (dialog.ShowDialog() == true)
+                {
+                    string exeName = dialog.SelectedProcessName;
+                    if (!string.IsNullOrEmpty(exeName))
+                    {
+                        // 添加 .exe 后缀如果需要
+                        AddGameToConfig(exeName + ".exe");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                WPFMessageBox.Show($"搜索进程失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void AddGameToConfig(string exeName)
+        {
+             // 确保配置文件存在
+            if (!File.Exists(configFile))
+            {
+                File.WriteAllText(configFile, "");
+            }
+
+            // 读取现有列表，避免重复
+            var lines = new List<string>(File.ReadAllLines(configFile));
+            bool exists = false;
+            foreach (var line in lines)
+            {
+                if (string.Equals(line.Trim(), exeName, StringComparison.OrdinalIgnoreCase))
+                {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (!exists)
+            {
+                lines.Add(exeName);
+                File.WriteAllLines(configFile, lines);
+            }
+
+            // 重新加载配置并选中新项
+            LoadConfig();
+            for (int i = 0; i < ProgramListBox.Items.Count; i++)
+            {
+                if (string.Equals(ProgramListBox.Items[i]?.ToString(), exeName, StringComparison.OrdinalIgnoreCase))
+                {
+                    ProgramListBox.SelectedIndex = i;
+                    break;
+                }
+            }
         }
 
         private void AddProgram_Click(object sender, RoutedEventArgs e)
@@ -960,41 +1053,7 @@ namespace WpfApp1
                     return;
                 }
                 string exeName = dialog.EnteredExeName;
-
-                // 确保配置文件存在
-                if (!File.Exists(configFile))
-                {
-                    File.WriteAllText(configFile, "");
-                }
-
-                // 读取现有列表，避免重复
-                var lines = new List<string>(File.ReadAllLines(configFile));
-                bool exists = false;
-                foreach (var line in lines)
-                {
-                    if (string.Equals(line.Trim(), exeName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        exists = true;
-                        break;
-                    }
-                }
-
-                if (!exists)
-                {
-                    lines.Add(exeName);
-                    File.WriteAllLines(configFile, lines);
-                }
-
-                // 重新加载配置并选中新项
-                LoadConfig();
-                for (int i = 0; i < ProgramListBox.Items.Count; i++)
-                {
-                    if (string.Equals(ProgramListBox.Items[i]?.ToString(), exeName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        ProgramListBox.SelectedIndex = i;
-                        break;
-                    }
-                }
+                AddGameToConfig(exeName);
             }
             catch (Exception ex)
             {
