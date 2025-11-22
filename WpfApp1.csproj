@@ -14,7 +14,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Babasse-Old-School-Time-Machine.ico" />
+    <Content Include="Babasse-Old-School-Time-Machine.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

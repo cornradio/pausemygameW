@@ -27,6 +27,7 @@ using MediaColor = System.Windows.Media.Color;
 using WPFMessageBox = System.Windows.MessageBox;
 using WPFImage = System.Windows.Controls.Image;
 using IOPath = System.IO.Path;
+using Application = System.Windows.Application;
 
 namespace WpfApp1
 {
@@ -59,6 +60,10 @@ namespace WpfApp1
         private const uint MOD_WIN = 0x0008;
         private const uint MOD_NOREPEAT = 0x4000;
 
+        // 托盘图标相关
+        private WinForms.NotifyIcon notifyIcon;
+        private bool isExiting = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -70,14 +75,80 @@ namespace WpfApp1
             // 添加消息钩子用于处理热键
             ComponentDispatcher.ThreadFilterMessage += ComponentDispatcherThreadFilterMessage;
             
-            // 窗口关闭时注销热键
-            Closed += (s, e) => {
-                UnregisterHotKey(new System.Windows.Interop.WindowInteropHelper(this).Handle, HOTKEY_ID_PAUSE);
-                UnregisterHotKey(new System.Windows.Interop.WindowInteropHelper(this).Handle, HOTKEY_ID_RESUME);
-            };
-
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
+
+            InitializeTrayIcon();
+        }
+
+        private void InitializeTrayIcon()
+        {
+            notifyIcon = new WinForms.NotifyIcon();
+            notifyIcon.Text = "Pause My Game";
+            
+            string iconPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "Babasse-Old-School-Time-Machine.ico");
+            if (File.Exists(iconPath))
+            {
+                notifyIcon.Icon = new System.Drawing.Icon(iconPath);
+            }
+            else
+            {
+                notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+            }
+
+            notifyIcon.Visible = true;
+
+            notifyIcon.MouseClick += (s, e) =>
+            {
+                if (e.Button == WinForms.MouseButtons.Left)
+                {
+                    RestoreWindow();
+                }
+            };
+
+            var contextMenu = new WinForms.ContextMenuStrip();
+            
+            var restoreItem = new WinForms.ToolStripMenuItem("恢复 (Restore)");
+            restoreItem.Click += (s, e) => RestoreWindow();
+            contextMenu.Items.Add(restoreItem);
+
+            var exitItem = new WinForms.ToolStripMenuItem("退出 (Exit)");
+            exitItem.Click += (s, e) => RealExit();
+            contextMenu.Items.Add(exitItem);
+
+            notifyIcon.ContextMenuStrip = contextMenu;
+        }
+
+        private void RestoreWindow()
+        {
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private void RealExit()
+        {
+            isExiting = true;
+            if (notifyIcon != null)
+            {
+                notifyIcon.Visible = false;
+                notifyIcon.Dispose();
+            }
+            Application.Current.Shutdown();
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            if (!isExiting)
+            {
+                e.Cancel = true;
+                Hide();
+                notifyIcon.ShowBalloonTip(1000, "Pause My Game", "程序已最小化到托盘，点击图标恢复。", WinForms.ToolTipIcon.Info);
+            }
+            else
+            {
+                base.OnClosing(e);
+            }
         }
 
         #region 数据库操作
