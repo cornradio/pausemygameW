@@ -316,7 +316,8 @@ namespace WpfApp1
             }
             catch (Exception ex)
             {
-                WPFMessageBox.Show($"查找进程时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                // 跳过报错，有的游戏是有加密措施的禁止读取图标icon
+                // WPFMessageBox.Show($"查找进程时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
         }
@@ -339,7 +340,8 @@ namespace WpfApp1
             }
             catch (Exception ex)
             {
-                WPFMessageBox.Show($"提取图标时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                //不要烦人的报错。
+                //WPFMessageBox.Show($"提取图标时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
         }
@@ -1201,6 +1203,12 @@ namespace WpfApp1
         {
             Close();
         }
+
+        private void Quit_Click(object sender, RoutedEventArgs e)
+        {
+            RealExit();
+        }
+
         private void ToggleFullScreen_Click(object sender, RoutedEventArgs e)
         {
             if (WindowState == WindowState.Normal)
@@ -1214,6 +1222,7 @@ namespace WpfApp1
                 WindowState = WindowState.Normal;
             }
         }
+
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)

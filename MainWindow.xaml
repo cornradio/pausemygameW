@@ -32,13 +32,13 @@
             <Setter Property="Margin" Value="0,0,5,0"/>
         </Style>
     </Window.Resources>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        
+
         <!-- 菜单栏和全屏按钮 -->
         <Grid Grid.Row="0" Background="#3c3f41">
             <Menu Background="Transparent" Foreground="#ffffff">
@@ -64,16 +64,16 @@
                     <MenuItem Header="pssuspend" Click="OpenPssuspend_Click" Foreground="#000000"/>
                 </MenuItem>
             </Menu>
-            <Button Content="X" Click="Exit_Click" HorizontalAlignment="Right" Cursor="Hand" VerticalAlignment="Top" Width="40" Height="20" Background="Transparent" Foreground="Red" BorderThickness="0" Margin="0,0,0,0" ToolTip="exxit"/>
+            <Button Content="➖" Click="Exit_Click" HorizontalAlignment="Right" Cursor="Hand" Width="40" Background="Transparent" Foreground="#FFEFEFEF" BorderThickness="0" Margin="760,0,0,0" ToolTip="exxit"/>
         </Grid>
-        
+
         <!-- 主内容区域 -->
         <Grid Grid.Row="1" Margin="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" MinWidth="250"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            
+
             <!-- 左侧：程序列表 -->
             <Border Background="#3c3f41" CornerRadius="5" Margin="0,0,10,0">
                 <Grid>
@@ -90,14 +90,14 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        
+
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <Button Content="🔍" Click="SearchProcess_Click" Style="{StaticResource IconButton}" ToolTip="Search Top Processes"/>
+                            <Button Content="🔍" Click="SearchProcess_Click" Style="{StaticResource IconButton}" ToolTip="Search Top Processes" Foreground="White"/>
                             <Button Content="➕" Click="AddProgram_Click" Style="{StaticResource IconButton}" ToolTip="Add Game"/>
                         </StackPanel>
-                        
+
                         <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <Button Content="🗑️" Click="DeleteGame_Click" Style="{StaticResource IconButton}" ToolTip="Delete Game"/>
+                            <Button Content="🗑️" Click="DeleteGame_Click" Style="{StaticResource IconButton}" ToolTip="Delete Game" Foreground="#FFFF7A7A"/>
                         </StackPanel>
                     </Grid>
 
@@ -138,11 +138,11 @@
                             </Style>
                         </ListBox.Resources>
                     </ListBox>
-                    
+
                     <TextBlock Grid.Row="2" Text="Game loaded: 0" x:Name="InfoLabel" Foreground="#787878" Margin="10,5"/>
                 </Grid>
             </Border>
-            
+
             <!-- 右侧：控制面板 -->
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
@@ -151,7 +151,7 @@
                     <RowDefinition Height="3*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                
+
                 <!-- 图标显示区域 -->
                 <Viewbox Grid.Row="0" Stretch="Uniform" Margin="0,0,0,10" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Border Background="#3c3f41" CornerRadius="5" Padding="20">
@@ -160,10 +160,10 @@
                         </StackPanel>
                     </Border>
                 </Viewbox>
-                
+
                 <!-- 状态显示 -->
                 <TextBlock Grid.Row="1" x:Name="StatusLabel" Text="Game Status untouched" Foreground="#787878" HorizontalAlignment="Center" Margin="0,0,0,10" FontSize="16"/>
-                
+
                 <!-- 控制按钮 -->
                 <Viewbox Grid.Row="2" Stretch="Uniform" VerticalAlignment="Top">
                     <StackPanel HorizontalAlignment="Center" Margin="20">
@@ -193,7 +193,7 @@
                         </Button>
                     </StackPanel>
                 </Viewbox>
-                
+
                 <!-- 配置按钮 -->
                 <StackPanel Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,20">
                     <Separator Margin="0,0,0,10" Width="200" Background="#3c3f41"/>
@@ -203,6 +203,11 @@
                         <Button Content="Fullscreen" Click="ToggleFullScreen_Click" Style="{StaticResource DarkButton}" Width="120" Height="30" Foreground="White" ToolTip="Toggle Full Screen"  Margin="5" FontWeight="Bold"/>
                     </StackPanel>
                 </StackPanel>
+
+                <!-- 右下角退出按钮 -->
+                <Button Grid.Row="3" Content="Exit" Click="Quit_Click" Style="{StaticResource DarkButton}" 
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,10" 
+                        Foreground="#FF6B6B" FontWeight="Bold" Width="40" Height="30" ToolTip="Exit Application"/>
             </Grid>
         </Grid>
     </Grid>
