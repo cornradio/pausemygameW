@@ -317,6 +317,10 @@ namespace WpfApp1
             catch (Exception ex)
             {
                 // 跳过报错，有的游戏是有加密措施的禁止读取图标icon
+                // 在运行状态中提示-无法获取游戏允许状态，禁止读取
+                StatusLabel.Text = $"无法获取游戏允许状态，禁止读取";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+
                 // WPFMessageBox.Show($"查找进程时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
@@ -1179,6 +1183,75 @@ namespace WpfApp1
         {
             Process.Start("taskmgr.exe");
         }
+        private void Opendevmgmt_Click(object sender, RoutedEventArgs e)
+        {
+           Process.Start(new ProcessStartInfo
+            {
+                FileName = "devmgmt.msc",
+                UseShellExecute = true
+            });
+        }
+        private void Opendiskmgmt_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "diskmgmt.msc",
+                UseShellExecute = true
+            });
+        }
+        private void Openncpa_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "ncpa.cpl",
+                UseShellExecute = true
+            });
+        }
+        private void Openmsinfo32_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "msinfo32.exe",
+                UseShellExecute = true
+            });
+        }
+        //wf.msc
+        private void Openwf_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "wf.msc",
+                UseShellExecute = true
+            });
+        }
+        //resmon.exe
+        private void Openresmon_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "resmon.exe",
+                UseShellExecute = true
+            });
+        }
+        //powershell
+        private void Openpowershell_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                UseShellExecute = true
+            });
+        }
+        //cmd
+        private void Opencmd_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                UseShellExecute = true
+            });
+        }
+
 
         private void OpenPssuspend_Click(object sender, RoutedEventArgs e)
         {
@@ -1190,6 +1263,14 @@ namespace WpfApp1
             });
         }
 
+        private void OpenBilibili_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://www.bilibili.com/video/BV1hyULBEEzy",
+                UseShellExecute = true
+            });
+        }
         private void OpenGitHub_Click(object sender, RoutedEventArgs e)
         {
             Process.Start(new ProcessStartInfo

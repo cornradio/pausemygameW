@@ -6,8 +6,8 @@
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
     <Window.Resources>
         <Style x:Key="DarkButton" TargetType="Button">
-            <Setter Property="Background" Value="#3c3f41"/>
-            <Setter Property="Foreground" Value="#ffffff"/>
+            <Setter Property="Background" Value="#FF090909"/>
+            <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="Template">
@@ -51,7 +51,15 @@
                     <MenuItem Header="Exit" Click="Exit_Click" Foreground="#000000"/>
                 </MenuItem>
                 <MenuItem Header="Tools" Foreground="#ffffff">
-                    <MenuItem Header="Task Manager" Click="OpenTaskManager_Click" Foreground="#000000"/>
+                    <MenuItem Header="taskmgr - 任务管理器" Click="OpenTaskManager_Click" Foreground="#000000"/>
+                    <MenuItem Header="resmon.exe - 资源监视器" Click="Openresmon_Click" Foreground="#000000"/>
+                    <MenuItem Header="devmgmt.msc - 设备管理器" Click="Opendevmgmt_Click" Foreground="#000000"/>
+                    <MenuItem Header="ncpa.cpl - 网络连接" Click="Openncpa_Click" Foreground="#000000"/>
+                    <MenuItem Header="wf.msc - 防火墙" Click="Openwf_Click" Foreground="#000000"/>
+                    <MenuItem Header="diskmgmt.msc - 磁盘管理" Click="Opendiskmgmt_Click" Foreground="#000000"/>
+                    <MenuItem Header="msinfo32.exe - 系统信息" Click="Openmsinfo32_Click" Foreground="#000000"/>
+                    <MenuItem Header="powershell" Click="Openpowershell_Click" Foreground="#000000"/>
+                    <MenuItem Header="cmd - 命令提示符" Click="Opencmd_Click" Foreground="#000000"/>
                 </MenuItem>
                 <MenuItem Header="Hotkeys" Foreground="#ffffff">
                     <MenuItem x:Name="PauseHotkeyMenuItem" Header="Pause (Ctrl+Alt+P)" Click="PauseGame_Click" Foreground="#000000"/>
@@ -60,8 +68,9 @@
                     <MenuItem Header="Configure Hotkeys" Click="ConfigHotkeys_Click" Foreground="#000000"/>
                 </MenuItem>
                 <MenuItem Header="Help" Foreground="#ffffff">
-                    <MenuItem Header="GitHub" Click="OpenGitHub_Click" Foreground="#000000"/>
-                    <MenuItem Header="pssuspend" Click="OpenPssuspend_Click" Foreground="#000000"/>
+                    <MenuItem Header="GitHub-使用帮助" Click="OpenGitHub_Click" Foreground="#000000"/>
+                    <MenuItem Header="pssuspend-需要额外下载的插件" Click="OpenPssuspend_Click" Foreground="#000000"/>
+                    <MenuItem Header="bilibili-教程" Click="OpenBilibili_Click" Foreground="#000000"/>
                 </MenuItem>
             </Menu>
             <Button Content="➖" Click="Exit_Click" HorizontalAlignment="Right" Cursor="Hand" Width="40" Background="Transparent" Foreground="#FFEFEFEF" BorderThickness="0" Margin="760,0,0,0" ToolTip="exxit"/>
@@ -201,13 +210,13 @@
                         <Button Content="Edit Config" Click="EditConfig_Click" Style="{StaticResource DarkButton}" Foreground="#A8E6CF" Width="120" Height="30" Margin="5" FontWeight="Bold"/>
                         <Button Content="Reload Config" Click="ReloadConfig_Click" Style="{StaticResource DarkButton}" Foreground="#FFD93D" Width="120" Height="30" Margin="5" FontWeight="Bold"/>
                         <Button Content="Fullscreen" Click="ToggleFullScreen_Click" Style="{StaticResource DarkButton}" Width="120" Height="30" Foreground="White" ToolTip="Toggle Full Screen"  Margin="5" FontWeight="Bold"/>
+                        <Button Content="Exit" Click="Quit_Click" Style="{StaticResource DarkButton}" 
+                        Foreground="#FF6B6B"  Width="120" Height="30" Margin="5" FontWeight="Bold" ToolTip="Exit Application"/>
+
                     </StackPanel>
                 </StackPanel>
 
-                <!-- 右下角退出按钮 -->
-                <Button Grid.Row="3" Content="Exit" Click="Quit_Click" Style="{StaticResource DarkButton}" 
-                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,10" 
-                        Foreground="#FF6B6B" FontWeight="Bold" Width="40" Height="30" ToolTip="Exit Application"/>
+
             </Grid>
         </Grid>
     </Grid>
