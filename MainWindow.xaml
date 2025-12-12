@@ -121,7 +121,12 @@
                              BorderThickness="0"
                              MinWidth="230"
                              HorizontalContentAlignment="Stretch"
-                             SelectionChanged="ProgramListBox_SelectionChanged">
+                             SelectionChanged="ProgramListBox_SelectionChanged"
+                             PreviewMouseLeftButtonDown="ProgramListBox_PreviewMouseLeftButtonDown"
+                             MouseMove="ProgramListBox_MouseMove"
+                             DragOver="ProgramListBox_DragOver"
+                             Drop="ProgramListBox_Drop"
+                             AllowDrop="True">
                         <ListBox.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Delete" Click="DeleteGame_Click"/>

@@ -63,6 +63,10 @@ namespace WpfApp1
         // 托盘图标相关
         private WinForms.NotifyIcon notifyIcon;
         private bool isExiting = false;
+        
+        // 拖放相关
+        private object draggedItem = null;
+        private System.Windows.Point dragStartPoint;
 
         public MainWindow()
         {
@@ -281,6 +285,32 @@ namespace WpfApp1
             catch (Exception ex)
             {
                 WPFMessageBox.Show($"加载配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveConfig()
+        {
+            try
+            {
+                var gameNames = new List<string>();
+                foreach (var item in ProgramListBox.Items)
+                {
+                    if (item != null)
+                    {
+                        string gameName = item.ToString();
+                        if (!string.IsNullOrWhiteSpace(gameName))
+                        {
+                            gameNames.Add(gameName);
+                        }
+                    }
+                }
+                
+                File.WriteAllLines(configFile, gameNames);
+                InfoLabel.Text = $"Game loaded: {ProgramListBox.Items.Count}";
+            }
+            catch (Exception ex)
+            {
+                WPFMessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -591,6 +621,121 @@ namespace WpfApp1
             {
                 UpdateIcon(selectedGame);
             }
+        }
+
+        private void ProgramListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            dragStartPoint = e.GetPosition(null);
+            draggedItem = null;
+            
+            var item = GetItemFromPoint(ProgramListBox, e.GetPosition(ProgramListBox));
+            if (item != null)
+            {
+                draggedItem = item;
+            }
+        }
+
+        private void ProgramListBox_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed && draggedItem != null)
+            {
+                System.Windows.Point currentPoint = e.GetPosition(null);
+                Vector diff = dragStartPoint - currentPoint;
+
+                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    // 传递字符串数据以便在Drop中获取
+                    string itemData = draggedItem.ToString();
+                    DragDrop.DoDragDrop(ProgramListBox, itemData, System.Windows.DragDropEffects.Move);
+                }
+            }
+        }
+
+        private void ProgramListBox_DragOver(object sender, System.Windows.DragEventArgs e)
+        {
+            e.Effects = System.Windows.DragDropEffects.Move;
+            e.Handled = true;
+        }
+
+        private void ProgramListBox_Drop(object sender, System.Windows.DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(typeof(string)))
+            {
+                draggedItem = null;
+                return;
+            }
+
+            var draggedItemData = e.Data.GetData(typeof(string)) as string;
+            if (string.IsNullOrEmpty(draggedItemData))
+            {
+                draggedItem = null;
+                return;
+            }
+
+            var targetItem = GetItemFromPoint(ProgramListBox, e.GetPosition(ProgramListBox));
+            if (targetItem == null)
+            {
+                draggedItem = null;
+                return;
+            }
+
+            string targetItemData = targetItem.ToString();
+            if (targetItemData == draggedItemData)
+            {
+                draggedItem = null;
+                return;
+            }
+
+            int draggedIndex = -1;
+            int targetIndex = -1;
+
+            // 查找索引
+            for (int i = 0; i < ProgramListBox.Items.Count; i++)
+            {
+                if (ProgramListBox.Items[i]?.ToString() == draggedItemData)
+                    draggedIndex = i;
+                if (ProgramListBox.Items[i]?.ToString() == targetItemData)
+                    targetIndex = i;
+            }
+
+            if (draggedIndex == -1 || targetIndex == -1)
+            {
+                draggedItem = null;
+                return;
+            }
+
+            // 保存当前选中的项
+            var selectedItem = ProgramListBox.SelectedItem;
+
+            // 移除拖拽的项
+            ProgramListBox.Items.RemoveAt(draggedIndex);
+
+            // 计算新的插入位置（如果向下拖，插入到目标位置；如果向上拖，插入到目标位置之前）
+            int newIndex = draggedIndex < targetIndex ? targetIndex : targetIndex;
+            ProgramListBox.Items.Insert(newIndex, draggedItemData);
+
+            // 恢复选中状态
+            ProgramListBox.SelectedItem = selectedItem;
+
+            // 保存配置
+            SaveConfig();
+
+            draggedItem = null;
+        }
+
+        private object GetItemFromPoint(System.Windows.Controls.ListBox listBox, System.Windows.Point point)
+        {
+            var item = listBox.InputHitTest(point) as DependencyObject;
+            while (item != null && item != listBox)
+            {
+                if (item is System.Windows.Controls.ListBoxItem)
+                {
+                    return (item as System.Windows.Controls.ListBoxItem).Content;
+                }
+                item = VisualTreeHelper.GetParent(item);
+            }
+            return null;
         }
 
         private void PauseGame_Click(object sender, RoutedEventArgs e)
@@ -1028,11 +1173,10 @@ namespace WpfApp1
             string gameName = GetSelectedGame();
             if (string.IsNullOrEmpty(gameName))
             {
-                WPFMessageBox.Show("Please select a game to delete.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            var result = WPFMessageBox.Show($"Are you sure you want to delete '{gameName}' from the list?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var result = WPFMessageBox.Show($"从列表中删除 '{gameName}' ?", "删除exe", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
                 if (File.Exists(configFile))
