@@ -41,7 +41,11 @@
 
         <!-- 菜单栏和全屏按钮 -->
         <Grid Grid.Row="0" Background="#3c3f41">
-            <Menu Background="Transparent" Foreground="#ffffff">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="191*"/>
+                <ColumnDefinition Width="609*"/>
+            </Grid.ColumnDefinitions>
+            <Menu Background="Transparent" Foreground="#ffffff" Grid.ColumnSpan="2">
                 <MenuItem Header="File" Foreground="#ffffff">
                     <MenuItem Header="Add" Click="AddProgram_Click" Foreground="#000000"/>
                     <MenuItem Header="Reload Config" Click="ReloadConfig_Click" Foreground="#000000"/>
@@ -73,7 +77,7 @@
                     <MenuItem Header="bilibili-教程" Click="OpenBilibili_Click" Foreground="#000000"/>
                 </MenuItem>
             </Menu>
-            <Button Content="➖" Click="Exit_Click" HorizontalAlignment="Right" Cursor="Hand" Width="40" Background="Transparent" Foreground="#FFEFEFEF" BorderThickness="0" Margin="760,0,0,0" ToolTip="exxit"/>
+            <Button Content="🡻" Click="Exit_Click" HorizontalAlignment="Left" Cursor="Hand" Width="40" Background="Transparent" Foreground="#FFEFEFEF" BorderThickness="0" Margin="569,0,0,0" ToolTip="exit" Grid.Column="1"/>
         </Grid>
 
         <!-- 主内容区域 -->
@@ -106,7 +110,7 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <Button Content="🗑️" Click="DeleteGame_Click" Style="{StaticResource IconButton}" ToolTip="Delete Game" Foreground="#FFFF7A7A"/>
+                            <Button Content="🗑️" Click="DeleteGame_Click" Style="{StaticResource IconButton}" ToolTip="Delete Game"/>
                         </StackPanel>
                     </Grid>
 
@@ -163,7 +167,7 @@
 
                 <!-- 图标显示区域 -->
                 <Viewbox Grid.Row="0" Stretch="Uniform" Margin="0,0,0,10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Border Background="#3c3f41" CornerRadius="5" Padding="20">
+                    <Border CornerRadius="5" Padding="20">
                         <StackPanel x:Name="IconPanel" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="选择程序显示图标" Foreground="#787878" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </StackPanel>
@@ -179,25 +183,25 @@
                         <Button Click="PauseGame_Click" Style="{StaticResource DarkButton}" Foreground="#FF8E53" Width="200" Height="50" Margin="0,5" FontWeight="Bold" FontSize="18">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="⏸" Margin="0,0,10,0"/>
-                                <TextBlock Text="暂停（Pause）"/>
+                                <TextBlock Text="暂停"/>
                             </StackPanel>
                         </Button>
                         <Button Click="ResumeGame_Click" Style="{StaticResource DarkButton}" Foreground="#4ECDC4" Width="200" Height="50" Margin="0,5" FontWeight="Bold" FontSize="18">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="▶" Margin="0,0,10,0"/>
-                                <TextBlock Text="恢复（Resume）"/>
+                                <TextBlock Text="恢复"/>
                             </StackPanel>
                         </Button>
                         <Button Click="KillGame_Click" Style="{StaticResource DarkButton}" Foreground="#FF6B6B" Width="200" Height="50" Margin="0,5" FontWeight="Bold" FontSize="18">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="💀" Margin="0,0,10,0"/>
-                                <TextBlock Text="杀死（Kill）"/>
+                                <TextBlock Text="杀死"/>
                             </StackPanel>
                         </Button>
                         <Button Click="LaunchGame_Click" Style="{StaticResource DarkButton}" Foreground="#70AD07" Width="200" Height="50" Margin="0,5" FontWeight="Bold" FontSize="18">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🚀" Margin="0,0,10,0"/>
-                                <TextBlock Text="启动（Launch）"/>
+                                <TextBlock Text="启动"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -207,11 +211,12 @@
                 <StackPanel Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,20">
                     <Separator Margin="0,0,0,10" Width="200" Background="#3c3f41"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="Edit Config" Click="EditConfig_Click" Style="{StaticResource DarkButton}" Foreground="#A8E6CF" Width="120" Height="30" Margin="5" FontWeight="Bold"/>
+                        <!-- <Button Content="Edit Config" Click="EditConfig_Click" Style="{StaticResource DarkButton}" Foreground="#A8E6CF" Width="120" Height="30" Margin="5" FontWeight="Bold"/>
                         <Button Content="Reload Config" Click="ReloadConfig_Click" Style="{StaticResource DarkButton}" Foreground="#FFD93D" Width="120" Height="30" Margin="5" FontWeight="Bold"/>
-                        <Button Content="Fullscreen" Click="ToggleFullScreen_Click" Style="{StaticResource DarkButton}" Width="120" Height="30" Foreground="White" ToolTip="Toggle Full Screen"  Margin="5" FontWeight="Bold"/>
-                        <Button Content="Exit" Click="Quit_Click" Style="{StaticResource DarkButton}" 
-                        Foreground="#FF6B6B"  Width="120" Height="30" Margin="5" FontWeight="Bold" ToolTip="Exit Application"/>
+                        -->
+                        <Button Content="⛶ 全屏" Click="ToggleFullScreen_Click" Style="{StaticResource DarkButton}" Width="100" Height="30" Foreground="White" ToolTip="Toggle Full Screen"  Margin="5" FontWeight="Bold"/>
+                        <Button Content="⏻ 退出" Click="Quit_Click" Style="{StaticResource DarkButton}" 
+                        Foreground="#FF6B6B"  Width="100" Height="30" Margin="5" FontWeight="Bold" ToolTip="Exit Application"/>
 
                     </StackPanel>
                 </StackPanel>
