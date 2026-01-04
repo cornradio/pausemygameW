@@ -68,6 +68,8 @@ namespace WpfApp1
         private object draggedItem = null;
         private System.Windows.Point dragStartPoint;
 
+        private DispatcherTimer statusTimer;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -83,6 +85,15 @@ namespace WpfApp1
             ResizeMode = ResizeMode.NoResize;
 
             InitializeTrayIcon();
+            InitializeStatusTimer();
+        }
+
+        private void InitializeStatusTimer()
+        {
+            statusTimer = new DispatcherTimer();
+            statusTimer.Interval = TimeSpan.FromSeconds(1);
+            statusTimer.Tick += (s, e) => UpdateButtonStates();
+            statusTimer.Start();
         }
 
         private void InitializeTrayIcon()
@@ -591,24 +602,7 @@ namespace WpfApp1
             return ProgramListBox.SelectedItem?.ToString();
         }
 
-        private void RunProcess(string command)
-        {
-            try
-            {
-                ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", $"/c {command}")
-                {
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                };
-                Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                WPFMessageBox.Show($"执行命令失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+
 
         #endregion
 
@@ -620,6 +614,7 @@ namespace WpfApp1
             if (selectedGame != null)
             {
                 UpdateIcon(selectedGame);
+                UpdateButtonStates();
             }
         }
 
@@ -738,82 +733,209 @@ namespace WpfApp1
             return null;
         }
 
-        private void PauseGame_Click(object sender, RoutedEventArgs e)
+        private void TogglePause_Click(object sender, RoutedEventArgs e)
         {
-            // 播放暂停音效 - 使用更有感觉的音效
-            PlayButtonSound("pause");
-            
             string gameName = GetSelectedGame();
-            if (gameName != null)
+            if (string.IsNullOrEmpty(gameName))
             {
+                StatusLabel.Text = "请先选择一个程序";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+                return;
+            }
+
+            if (ProcessLogic.IsProcessSuspended(gameName))
+            {
+                // 恢复
+                PlayButtonSound("resume");
+                ProcessLogic.ResumeProcess(gameName);
+                StatusLabel.Text = $"▶ {gameName} Resumed";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
+            }
+            else
+            {
+                // 暂停
+                PlayButtonSound("pause");
+                ProcessLogic.PauseProcess(gameName);
                 StatusLabel.Text = $"⏸ {gameName} Paused";
                 StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 255));
-                
-                // 检查pssuspend.exe是否存在
-                string pssuspendPath = "PsSuspend.exe";
-                if (!File.Exists(pssuspendPath) && !File.Exists(IOPath.Combine(Environment.CurrentDirectory, pssuspendPath)))
-                {
-                    WPFMessageBox.Show("找不到PsSuspend.exe工具，请确保它在程序目录或系统路径中。\n\n您可以从Sysinternals Suite下载此工具。", 
-                        "缺少必要工具", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-                
-                // 尝试最小化目标窗口
+            }
+            UpdateButtonStates();
+        }
+
+        private void ToggleLaunch_Click(object sender, RoutedEventArgs e)
+        {
+            string gameName = GetSelectedGame();
+            if (string.IsNullOrEmpty(gameName))
+            {
+                StatusLabel.Text = "请先选择一个程序";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+                return;
+            }
+
+            if (ProcessLogic.IsProcessRunning(gameName))
+            {
+                // 杀死
+                PlayButtonSound("kill");
+                ProcessLogic.KillProcess(gameName);
+                StatusLabel.Text = $"⏹ {gameName} Killed";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+            }
+            else
+            {
+                // 启动
+                PlayButtonSound("launch");
+                string exePath = gameDatabase.ContainsKey(gameName) ? gameDatabase[gameName].ExePath : null;
                 try
                 {
-                    Process[] processes = Process.GetProcessesByName(IOPath.GetFileNameWithoutExtension(gameName));
-                    if (processes.Length > 0)
-                    {
-                        MinimizeProcessWindow(processes[0]);
-                    }
+                    ProcessLogic.LaunchProcess(exePath, gameName);
+                    StatusLabel.Text = $"🚀 Launching {gameName}...";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 123, 255));
                 }
                 catch (Exception ex)
                 {
-                    // 最小化失败不影响暂停功能
-                    Console.WriteLine($"最小化窗口失败: {ex.Message}");
+                    WPFMessageBox.Show(ex.Message, "启动失败", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-                
-                // 暂停游戏进程
-                RunProcess($"PsSuspend \"{gameName}\"");
+            }
+            UpdateButtonStates();
+        }
+
+        private void UpdateButtonStates()
+        {
+            string gameName = GetSelectedGame();
+            if (string.IsNullOrEmpty(gameName)) return;
+
+            bool isRunning = ProcessLogic.IsProcessRunning(gameName);
+            bool isSuspended = ProcessLogic.IsProcessSuspended(gameName);
+
+            // 更新两按钮模式
+            if (isSuspended)
+            {
+                PauseResumeIcon.Text = "▶";
+                PauseResumeText.Text = "恢复运行";
+                PauseResumeBtn.Foreground = new SolidColorBrush(MediaColor.FromRgb(78, 205, 196)); 
             }
             else
             {
-                StatusLabel.Text = "请先选择一个程序";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+                PauseResumeIcon.Text = "⏸";
+                PauseResumeText.Text = "暂停游戏";
+                PauseResumeBtn.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 142, 83)); 
             }
-        }
-        
-        private void MinimizeProcessWindow(Process process)
-        {
-            if (process != null && !process.HasExited && process.MainWindowHandle != IntPtr.Zero)
+            
+            // 核心逻辑：如果程序没启动，暂停按钮应当禁用
+            PauseResumeBtn.IsEnabled = isRunning;
+            PauseResumeBtn.Opacity = isRunning ? 1.0 : 0.5;
+
+            if (isRunning)
             {
-                ShowWindow(process.MainWindowHandle, SW_MINIMIZE);
+                LaunchKillIcon.Text = "💀";
+                LaunchKillText.Text = "杀死进程";
+                LaunchKillBtn.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 107, 107));
+            }
+            else
+            {
+                LaunchKillIcon.Text = "🚀";
+                LaunchKillText.Text = "启动游戏";
+                LaunchKillBtn.Foreground = new SolidColorBrush(MediaColor.FromRgb(112, 173, 7));
+            }
+            
+            // 四按钮模式的禁用逻辑 (在容器内查找按钮并设置)
+            if (FourButtonPanel.Visibility == Visibility.Visible)
+            {
+                foreach (var child in FourButtonPanel.Children)
+                {
+                    if (child is System.Windows.Controls.Button btn)
+                    {
+                        if (btn.Content is StackPanel sp)
+                        {
+                            foreach (var spChild in sp.Children)
+                            {
+                                if (spChild is TextBlock tb && (tb.Text.Contains("暂停") || tb.Text.Contains("恢复")))
+                                {
+                                    btn.IsEnabled = isRunning;
+                                    btn.Opacity = isRunning ? 1.0 : 0.5;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
-        
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-        
-        private const int SW_MINIMIZE = 6;
+
+        private void SwitchToTwoButton_Click(object sender, RoutedEventArgs e)
+        {
+            TwoButtonPanel.Visibility = Visibility.Visible;
+            FourButtonPanel.Visibility = Visibility.Collapsed;
+            TwoButtonModeMenuItem.Header = "✓ Two Buttons (Default)";
+            FourButtonModeMenuItem.Header = "Four Buttons";
+            UpdateButtonStates();
+        }
+
+        private void SwitchToFourButton_Click(object sender, RoutedEventArgs e)
+        {
+            TwoButtonPanel.Visibility = Visibility.Collapsed;
+            FourButtonPanel.Visibility = Visibility.Visible;
+            TwoButtonModeMenuItem.Header = "Two Buttons (Default)";
+            FourButtonModeMenuItem.Header = "✓ Four Buttons";
+            UpdateButtonStates();
+        }
+
+        private void PauseGame_Click(object sender, RoutedEventArgs e) 
+        {
+            string gameName = GetSelectedGame();
+            if (!string.IsNullOrEmpty(gameName))
+            {
+                PlayButtonSound("pause");
+                ProcessLogic.PauseProcess(gameName);
+                StatusLabel.Text = $"⏸ {gameName} Paused";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 255));
+                UpdateButtonStates();
+            }
+        }
 
         private void ResumeGame_Click(object sender, RoutedEventArgs e)
         {
-            // 播放恢复音效 - 使用更有感觉的音效
-            PlayButtonSound("resume");
-            
             string gameName = GetSelectedGame();
-            if (gameName != null)
+            if (!string.IsNullOrEmpty(gameName))
             {
+                PlayButtonSound("resume");
+                ProcessLogic.ResumeProcess(gameName);
                 StatusLabel.Text = $"▶ {gameName} Resumed";
                 StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
-                
-                // 恢复游戏进程
-                RunProcess($"PsSuspend -r \"{gameName}\"");
+                UpdateButtonStates();
             }
-            else
+        }
+
+        private void KillGame_Click(object sender, RoutedEventArgs e)
+        {
+            string gameName = GetSelectedGame();
+            if (!string.IsNullOrEmpty(gameName))
             {
-                StatusLabel.Text = "请先选择一个程序";
+                PlayButtonSound("kill");
+                ProcessLogic.KillProcess(gameName);
+                StatusLabel.Text = $"⏹ {gameName} Killed";
                 StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+                UpdateButtonStates();
+            }
+        }
+
+        private void LaunchGame_Click(object sender, RoutedEventArgs e)
+        {
+            string gameName = GetSelectedGame();
+            if (!string.IsNullOrEmpty(gameName))
+            {
+                PlayButtonSound("launch");
+                string exePath = gameDatabase.ContainsKey(gameName) ? gameDatabase[gameName].ExePath : null;
+                try
+                {
+                    ProcessLogic.LaunchProcess(exePath, gameName);
+                    StatusLabel.Text = $"🚀 Launching {gameName}...";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 123, 255));
+                }
+                catch (Exception ex)
+                {
+                    WPFMessageBox.Show(ex.Message, "启动失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                UpdateButtonStates();
             }
         }
         
@@ -1099,75 +1221,6 @@ namespace WpfApp1
             }
         }
 
-        private void KillGame_Click(object sender, RoutedEventArgs e)
-        {
-            // 播放终止音效 - 使用更有感觉的音效
-            PlayButtonSound("kill");
-            
-            string gameName = GetSelectedGame();
-            if (gameName != null)
-            {
-                StatusLabel.Text = $"⏹ {gameName} Killed";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
-                
-                // 结束游戏进程
-                RunProcess($"taskkill /IM \"{gameName}\" /F");
-            }
-            else
-            {
-                StatusLabel.Text = "请先选择一个程序";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
-            }
-        }
-
-        private void LaunchGame_Click(object sender, RoutedEventArgs e)
-        {
-            // 播放启动音效 - 使用更有感觉的音效
-            PlayButtonSound("launch");
-            
-            string gameName = GetSelectedGame();
-            if (gameName != null)
-            {
-                string exePath = null;
-                if (gameDatabase.ContainsKey(gameName))
-                {
-                    exePath = gameDatabase[gameName].ExePath;
-                }
-                
-                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
-                {
-                    StatusLabel.Text = $"🚀 Launching {gameName}...";
-                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 123, 255));
-                    
-                    // 启动游戏
-                    Process.Start(exePath);
-                }
-                else
-                {
-                    // 尝试直接运行程序名
-                    StatusLabel.Text = $"🚀 Launching {gameName}...";
-                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 123, 255));
-                    
-                    try
-                    {
-                        Process.Start(gameName);
-                    }
-                    catch
-                    {
-                        WPFMessageBox.Show($"无法启动 {gameName}，请确保程序名称正确或在数据库中设置正确的路径。", "启动失败", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    }
-                }
-                
-                // 更新图标以反映启动状态
-                Task.Delay(1000).ContinueWith(_ => Dispatcher.Invoke(() => UpdateIcon(gameName)));
-            }
-            else
-            {
-                StatusLabel.Text = "请先选择一个程序";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
-            }
-        }
-
         private void DeleteGame_Click(object sender, RoutedEventArgs e)
         {
             string gameName = GetSelectedGame();
@@ -1427,6 +1480,20 @@ namespace WpfApp1
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void Minimize_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = WindowState.Minimized;
+        }
+
+        private void Tray_Click(object sender, RoutedEventArgs e)
+        {
+            this.Hide();
+            if (notifyIcon != null)
+            {
+                notifyIcon.ShowBalloonTip(1000, "Pause My Game", "程序已最小化到托盘，点击图标恢复。", WinForms.ToolTipIcon.Info);
+            }
         }
 
         private void Quit_Click(object sender, RoutedEventArgs e)

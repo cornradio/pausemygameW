@@ -39,13 +39,9 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 菜单栏和全屏按钮 -->
+        <!-- 标题栏区域 -->
         <Grid Grid.Row="0" Background="#3c3f41">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="191*"/>
-                <ColumnDefinition Width="609*"/>
-            </Grid.ColumnDefinitions>
-            <Menu Background="Transparent" Foreground="#ffffff" Grid.ColumnSpan="2">
+            <Menu Background="Transparent" Foreground="#ffffff" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <MenuItem Header="File" Foreground="#ffffff">
                     <MenuItem Header="Add" Click="AddProgram_Click" Foreground="#000000"/>
                     <MenuItem Header="Reload Config" Click="ReloadConfig_Click" Foreground="#000000"/>
@@ -65,6 +61,10 @@
                     <MenuItem Header="powershell" Click="Openpowershell_Click" Foreground="#000000"/>
                     <MenuItem Header="cmd - 命令提示符" Click="Opencmd_Click" Foreground="#000000"/>
                 </MenuItem>
+                <MenuItem Header="Mode" Foreground="#ffffff">
+                    <MenuItem x:Name="TwoButtonModeMenuItem" Header="✓ Two Buttons (Default)" Click="SwitchToTwoButton_Click" Foreground="#000000"/>
+                    <MenuItem x:Name="FourButtonModeMenuItem" Header="Four Buttons" Click="SwitchToFourButton_Click" Foreground="#000000"/>
+                </MenuItem>
                 <MenuItem Header="Hotkeys" Foreground="#ffffff">
                     <MenuItem x:Name="PauseHotkeyMenuItem" Header="Pause (Ctrl+Alt+P)" Click="PauseGame_Click" Foreground="#000000"/>
                     <MenuItem x:Name="ResumeHotkeyMenuItem" Header="Resume (Ctrl+Alt+R)" Click="ResumeGame_Click" Foreground="#000000"/>
@@ -77,7 +77,13 @@
                     <MenuItem Header="bilibili-教程" Click="OpenBilibili_Click" Foreground="#000000"/>
                 </MenuItem>
             </Menu>
-            <Button Content="🡻" Click="Exit_Click" HorizontalAlignment="Left" Cursor="Hand" Width="40" Background="Transparent" Foreground="#FFEFEFEF" BorderThickness="0" Margin="569,0,0,0" ToolTip="exit" Grid.Column="1"/>
+
+            <TextBlock x:Name="StatusLabel" Text="Game Status untouched" Foreground="#787878" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" IsHitTestVisible="False"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Content="━" Click="Minimize_Click" Style="{StaticResource IconButton}" Width="40" Height="30" ToolTip="最小化到任务栏"/>
+                <Button Content="📥" Click="Tray_Click" Style="{StaticResource IconButton}" Width="40" Height="30" ToolTip="缩小到托盘"/>
+            </StackPanel>
         </Grid>
 
         <!-- 主内容区域 -->
@@ -165,13 +171,12 @@
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="2*"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="3*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- 图标显示区域 -->
-                <Viewbox Grid.Row="0" Stretch="Uniform" Margin="0,0,0,10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Viewbox Grid.Row="0" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Border CornerRadius="5" Padding="20">
                         <StackPanel x:Name="IconPanel" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="选择程序显示图标" Foreground="#787878" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -179,54 +184,65 @@
                     </Border>
                 </Viewbox>
 
-                <!-- 状态显示 -->
-                <TextBlock Grid.Row="1" x:Name="StatusLabel" Text="Game Status untouched" Foreground="#787878" HorizontalAlignment="Center" Margin="0,0,0,10" FontSize="16"/>
-
                 <!-- 控制按钮 -->
-                <Viewbox Grid.Row="2" Stretch="Uniform" VerticalAlignment="Top">
-                    <StackPanel HorizontalAlignment="Center" Margin="20">
-                        <Button Click="PauseGame_Click" Style="{StaticResource DarkButton}" Foreground="#FF8E53" Width="200" Height="50" Margin="0,5" FontWeight="Bold" FontSize="18">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="⏸" Margin="0,0,10,0"/>
-                                <TextBlock Text="暂停"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Click="ResumeGame_Click" Style="{StaticResource DarkButton}" Foreground="#4ECDC4" Width="200" Height="50" Margin="0,5" FontWeight="Bold" FontSize="18">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="▶" Margin="0,0,10,0"/>
-                                <TextBlock Text="恢复"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Click="KillGame_Click" Style="{StaticResource DarkButton}" Foreground="#FF6B6B" Width="200" Height="50" Margin="0,5" FontWeight="Bold" FontSize="18">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="💀" Margin="0,0,10,0"/>
-                                <TextBlock Text="杀死"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Click="LaunchGame_Click" Style="{StaticResource DarkButton}" Foreground="#70AD07" Width="200" Height="50" Margin="0,5" FontWeight="Bold" FontSize="18">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🚀" Margin="0,0,10,0"/>
-                                <TextBlock Text="启动"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
+                <Viewbox Grid.Row="1" Stretch="Uniform" VerticalAlignment="Center">
+                    <Grid>
+                        <!-- 两按钮模式容器 -->
+                        <StackPanel x:Name="TwoButtonPanel" HorizontalAlignment="Center" Margin="20">
+                            <Button x:Name="PauseResumeBtn" Click="TogglePause_Click" Style="{StaticResource DarkButton}" Foreground="#FF8E53" Width="200" Height="60" Margin="0,10" FontWeight="Bold" FontSize="18">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="PauseResumeIcon" Text="⏸" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="PauseResumeText" Text="暂停 / 恢复"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button x:Name="LaunchKillBtn" Click="ToggleLaunch_Click" Style="{StaticResource DarkButton}" Foreground="#70AD07" Width="200" Height="60" Margin="0,10" FontWeight="Bold" FontSize="18">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="LaunchKillIcon" Text="🚀" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="LaunchKillText" Text="启动 / 杀死"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- 四按钮模式容器 (默认隐藏) -->
+                        <StackPanel x:Name="FourButtonPanel" HorizontalAlignment="Center" Margin="20" Visibility="Collapsed">
+                            <Button Click="PauseGame_Click" Style="{StaticResource DarkButton}" Foreground="#FF8E53" Width="200" Height="45" Margin="0,5" FontWeight="Bold" FontSize="16">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⏸" Margin="0,0,10,0"/>
+                                    <TextBlock Text="暂停 (Pause)"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Click="ResumeGame_Click" Style="{StaticResource DarkButton}" Foreground="#4ECDC4" Width="200" Height="45" Margin="0,5" FontWeight="Bold" FontSize="16">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="▶" Margin="0,0,10,0"/>
+                                    <TextBlock Text="恢复 (Resume)"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Click="LaunchGame_Click" Style="{StaticResource DarkButton}" Foreground="#70AD07" Width="200" Height="45" Margin="0,5" FontWeight="Bold" FontSize="16">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🚀" Margin="0,0,10,0"/>
+                                    <TextBlock Text="启动 (Launch)"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Click="KillGame_Click" Style="{StaticResource DarkButton}" Foreground="#FF6B6B" Width="200" Height="45" Margin="0,5" FontWeight="Bold" FontSize="16">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="💀" Margin="0,0,10,0"/>
+                                    <TextBlock Text="杀死 (Kill)"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </Viewbox>
 
                 <!-- 配置按钮 -->
-                <StackPanel Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,20">
+                <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,10">
                     <Separator Margin="0,0,0,10" Width="200" Background="#3c3f41"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <!-- <Button Content="Edit Config" Click="EditConfig_Click" Style="{StaticResource DarkButton}" Foreground="#A8E6CF" Width="120" Height="30" Margin="5" FontWeight="Bold"/>
-                        <Button Content="Reload Config" Click="ReloadConfig_Click" Style="{StaticResource DarkButton}" Foreground="#FFD93D" Width="120" Height="30" Margin="5" FontWeight="Bold"/>
-                        -->
                         <Button Content="⛶ 全屏" Click="ToggleFullScreen_Click" Style="{StaticResource DarkButton}" Width="100" Height="30" Foreground="White" ToolTip="Toggle Full Screen"  Margin="5" FontWeight="Bold"/>
                         <Button Content="⏻ 退出" Click="Quit_Click" Style="{StaticResource DarkButton}" 
                         Foreground="#FF6B6B"  Width="100" Height="30" Margin="5" FontWeight="Bold" ToolTip="Exit Application"/>
-
                     </StackPanel>
                 </StackPanel>
-
-
             </Grid>
         </Grid>
     </Grid>
