@@ -1,7 +1,7 @@
 <Window x:Class="WpfApp1.HotkeyConfigWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="配置快捷键" Height="250" Width="400" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+        Title="配置快捷键" Height="300" Width="400" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
     <Grid Background="#2D2D30">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

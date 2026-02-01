@@ -109,14 +109,23 @@ namespace WpfApp1
             notifyIcon = new WinForms.NotifyIcon();
             notifyIcon.Text = "Pause My Game";
             
-            string iconPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "Babasse-Old-School-Time-Machine.ico");
-            if (File.Exists(iconPath))
+            try
             {
-                notifyIcon.Icon = new System.Drawing.Icon(iconPath);
+                // 从内置资源中直接加载图标，不再依赖外部文件
+                var iconStream = Application.GetResourceStream(new Uri("pack://application:,,,/Babasse-Old-School-Time-Machine.ico")).Stream;
+                notifyIcon.Icon = new System.Drawing.Icon(iconStream);
             }
-            else
+            catch (Exception)
             {
-                notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+                // 如果资源加载失败，尝试从 EXE 自身获取或使用系统默认图标
+                try
+                {
+                    notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(Process.GetCurrentProcess().MainModule.FileName);
+                }
+                catch
+                {
+                    notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+                }
             }
 
             notifyIcon.Visible = true;
