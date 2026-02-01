@@ -45,7 +45,10 @@
             <Button Grid.Column="2" Content="清除" Click="ClearHotkey_Click" Tag="toggle" Width="50" Margin="5" Background="#444" Foreground="White" BorderBrush="#666"/>
         </Grid>
 
-        <CheckBox Grid.Row="3" x:Name="MinimizeCheckBox" Content="游戏暂停时自动缩小/最小化" Foreground="White" Margin="15,10" IsChecked="True" VerticalAlignment="Center"/>
+        <StackPanel Grid.Row="3" Orientation="Vertical" Margin="15,10">
+            <CheckBox x:Name="MinimizeCheckBox" Content="暂停时自动最小化" Foreground="White" Margin="0,5" IsChecked="True" VerticalAlignment="Center"/>
+            <CheckBox x:Name="SoundCheckBox" Content="开启声音提示" Foreground="White" Margin="0,5" IsChecked="True" VerticalAlignment="Center"/>
+        </StackPanel>
 
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,15">
             <Button Content="保存设置" Width="100" Height="30" Margin="5" Click="SaveButton_Click" Background="#007ACC" Foreground="White" BorderBrush="#007ACC" FontWeight="Bold"/>

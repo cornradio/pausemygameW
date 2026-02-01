@@ -45,7 +45,8 @@ namespace WpfApp1
             { "pause", "Ctrl+Alt+P" }, 
             { "resume", "Ctrl+Alt+R" },
             { "toggle", "Ctrl+Alt+T" },
-            { "minimizeOnPause", "true" }
+            { "minimizeOnPause", "true" },
+            { "enableSound", "true" }
         };
         
         // 用于全局热键的API
@@ -1225,6 +1226,11 @@ namespace WpfApp1
         // 播放按钮音效的方法
         private void PlayButtonSound(string action)
         {
+            if (hotkeys.ContainsKey("enableSound") && hotkeys["enableSound"] == "false")
+            {
+                return;
+            }
+
             try
             {
                 // 使用更有感觉的系统音效

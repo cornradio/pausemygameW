@@ -36,6 +36,11 @@ namespace WpfApp1
             {
                 MinimizeCheckBox.IsChecked = tempHotkeys["minimizeOnPause"] == "true";
             }
+
+            if (tempHotkeys.ContainsKey("enableSound"))
+            {
+                SoundCheckBox.IsChecked = tempHotkeys["enableSound"] == "true";
+            }
         }
         
         private void ClearHotkey_Click(object sender, RoutedEventArgs e)
@@ -117,6 +122,7 @@ namespace WpfApp1
         {
             // 更新临时状态中的复选框值
             tempHotkeys["minimizeOnPause"] = MinimizeCheckBox.IsChecked == true ? "true" : "false";
+            tempHotkeys["enableSound"] = SoundCheckBox.IsChecked == true ? "true" : "false";
 
             // 将临时热键配置应用到实际配置
             foreach (var key in tempHotkeys.Keys)
