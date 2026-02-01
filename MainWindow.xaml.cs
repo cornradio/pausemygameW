@@ -40,7 +40,13 @@ namespace WpfApp1
         private string dbFile = "game_database.json";
         private string configFile = "game_name.txt";
         private string hotkeyFile = "hotkeys.json";
-        private Dictionary<string, string> hotkeys = new Dictionary<string, string>() { { "pause", "Ctrl+Alt+P" }, { "resume", "Ctrl+Alt+R" } };
+        private Dictionary<string, string> hotkeys = new Dictionary<string, string>() 
+        { 
+            { "pause", "Ctrl+Alt+P" }, 
+            { "resume", "Ctrl+Alt+R" },
+            { "toggle", "Ctrl+Alt+T" },
+            { "minimizeOnPause", "true" }
+        };
         
         // 用于全局热键的API
         [DllImport("user32.dll")]
@@ -52,6 +58,7 @@ namespace WpfApp1
         // 热键ID
         private const int HOTKEY_ID_PAUSE = 1;
         private const int HOTKEY_ID_RESUME = 2;
+        private const int HOTKEY_ID_TOGGLE = 3;
         
         // 修饰键
         private const uint MOD_ALT = 0x0001;
@@ -743,11 +750,13 @@ namespace WpfApp1
                 return;
             }
 
+            bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
+
             if (ProcessLogic.IsProcessSuspended(gameName))
             {
                 // 恢复
                 PlayButtonSound("resume");
-                ProcessLogic.ResumeProcess(gameName);
+                ProcessLogic.ResumeProcess(gameName, minimizeOnPause);
                 StatusLabel.Text = $"▶ {gameName} Resumed";
                 StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
             }
@@ -755,7 +764,7 @@ namespace WpfApp1
             {
                 // 暂停
                 PlayButtonSound("pause");
-                ProcessLogic.PauseProcess(gameName);
+                ProcessLogic.PauseProcess(gameName, minimizeOnPause);
                 StatusLabel.Text = $"⏸ {gameName} Paused";
                 StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 255));
             }
@@ -884,8 +893,9 @@ namespace WpfApp1
             string gameName = GetSelectedGame();
             if (!string.IsNullOrEmpty(gameName))
             {
+                bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
                 PlayButtonSound("pause");
-                ProcessLogic.PauseProcess(gameName);
+                ProcessLogic.PauseProcess(gameName, minimizeOnPause);
                 StatusLabel.Text = $"⏸ {gameName} Paused";
                 StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 255));
                 UpdateButtonStates();
@@ -897,8 +907,9 @@ namespace WpfApp1
             string gameName = GetSelectedGame();
             if (!string.IsNullOrEmpty(gameName))
             {
+                bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
                 PlayButtonSound("resume");
-                ProcessLogic.ResumeProcess(gameName);
+                ProcessLogic.ResumeProcess(gameName, minimizeOnPause);
                 StatusLabel.Text = $"▶ {gameName} Resumed";
                 StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
                 UpdateButtonStates();
@@ -948,7 +959,14 @@ namespace WpfApp1
                 if (File.Exists(hotkeyFile))
                 {
                     string json = File.ReadAllText(hotkeyFile);
-                    hotkeys = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? hotkeys;
+                    var loadedHotkeys = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                    if (loadedHotkeys != null)
+                    {
+                        foreach (var kvp in loadedHotkeys)
+                        {
+                            hotkeys[kvp.Key] = kvp.Value;
+                        }
+                    }
                 }
                 else
                 {
@@ -977,6 +995,11 @@ namespace WpfApp1
             {
                 ResumeHotkeyMenuItem.Header = $"Resume ({hotkeys["resume"]})"; 
             }
+
+            if (ToggleHotkeyMenuItem != null && hotkeys.ContainsKey("toggle"))
+            {
+                ToggleHotkeyMenuItem.Header = $"Toggle ({hotkeys["toggle"]})";
+            }
         }
         
         private void ConfigHotkeys_Click(object sender, RoutedEventArgs e)
@@ -985,6 +1008,7 @@ namespace WpfApp1
             IntPtr handle = new WindowInteropHelper(this).Handle;
             UnregisterHotKey(handle, HOTKEY_ID_PAUSE);
             UnregisterHotKey(handle, HOTKEY_ID_RESUME);
+            UnregisterHotKey(handle, HOTKEY_ID_TOGGLE);
             
             // 打开热键配置窗口
             HotkeyConfigWindow configWindow = new HotkeyConfigWindow(hotkeys);
@@ -1028,21 +1052,62 @@ namespace WpfApp1
             {
                 IntPtr handle = new WindowInteropHelper(this).Handle;
                 
+                // 确保我们可以获取到句柄，如果没有则稍后重试
+                if (handle == IntPtr.Zero)
+                {
+                    Dispatcher.BeginInvoke(new Action(() => RegisterHotKeys()), DispatcherPriority.Background);
+                    return;
+                }
+
+                bool allSuccess = true;
+                string failMsg = "";
+
                 // 解析暂停热键
                 if (ParseHotkey(hotkeys["pause"], out uint pauseModifiers, out uint pauseKey))
                 {
-                    RegisterHotKey(handle, HOTKEY_ID_PAUSE, pauseModifiers, pauseKey);
+                    if (!RegisterHotKey(handle, HOTKEY_ID_PAUSE, pauseModifiers, pauseKey))
+                    {
+                        allSuccess = false;
+                        failMsg += "暂停 ";
+                    }
                 }
                 
                 // 解析恢复热键
                 if (ParseHotkey(hotkeys["resume"], out uint resumeModifiers, out uint resumeKey))
                 {
-                    RegisterHotKey(handle, HOTKEY_ID_RESUME, resumeModifiers, resumeKey);
+                    if (!RegisterHotKey(handle, HOTKEY_ID_RESUME, resumeModifiers, resumeKey))
+                    {
+                        allSuccess = false;
+                        failMsg += "恢复 ";
+                    }
+                }
+
+                // 解析二合一热键
+                if (hotkeys.ContainsKey("toggle") && ParseHotkey(hotkeys["toggle"], out uint toggleModifiers, out uint toggleKey))
+                {
+                    if (!RegisterHotKey(handle, HOTKEY_ID_TOGGLE, toggleModifiers, toggleKey))
+                    {
+                        allSuccess = false;
+                        failMsg += "二合一 ";
+                        
+                        // F12 特殊提示
+                        if (toggleKey == 0x7B && toggleModifiers == 0)
+                        {
+                             WPFMessageBox.Show("F12 键被 Windows 系统保留用于调试，无法直接作为全局热键。请尝试组合键（如 Alt+F12）或其他按键。", "热键冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
+                    }
+                }
+
+                if (!allSuccess)
+                {
+                    StatusLabel.Text = $"⚠ 部分热键注册失败: {failMsg}";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 165, 0));
                 }
             }
             catch (Exception ex)
             {
-                WPFMessageBox.Show($"注册热键失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusLabel.Text = $"热键故障: {ex.Message}";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
             }
         }
         
@@ -1055,66 +1120,59 @@ namespace WpfApp1
                 return false;
                 
             string[] parts = hotkeyString.Split('+');
-            if (parts.Length < 2)
-                return false;
-                
+            
             // 解析修饰键
-            for (int i = 0; i < parts.Length - 1; i++)
+            if (parts.Length > 1)
             {
-                string mod = parts[i].Trim().ToLower();
-                switch (mod)
+                for (int i = 0; i < parts.Length - 1; i++)
                 {
-                    case "ctrl":
-                    case "control":
-                        modifiers |= MOD_CONTROL;
-                        break;
-                    case "alt":
-                        modifiers |= MOD_ALT;
-                        break;
-                    case "shift":
-                        modifiers |= MOD_SHIFT;
-                        break;
-                    case "win":
-                    case "windows":
-                        modifiers |= MOD_WIN;
-                        break;
+                    string mod = parts[i].Trim().ToLower();
+                    switch (mod)
+                    {
+                        case "ctrl":
+                        case "control":
+                            modifiers |= MOD_CONTROL;
+                            break;
+                        case "alt":
+                            modifiers |= MOD_ALT;
+                            break;
+                        case "shift":
+                            modifiers |= MOD_SHIFT;
+                            break;
+                        case "win":
+                        case "windows":
+                            modifiers |= MOD_WIN;
+                            break;
+                    }
                 }
             }
             
-            // 解析键值
-            string keyStr = parts[parts.Length - 1].Trim().ToUpper();
-            if (keyStr.Length == 1 && keyStr[0] >= 'A' && keyStr[0] <= 'Z')
+            // 解析主键
+            string keyStr = parts[parts.Length - 1].Trim();
+            
+            // 尝试直接使用 Win32 映射
+            try
             {
-                // 字母键
-                key = (uint)keyStr[0];
-                return true;
-            }
-            else if (keyStr.Length == 1 && keyStr[0] >= '0' && keyStr[0] <= '9')
-            {
-                // 数字键
-                key = (uint)keyStr[0];
-                return true;
-            }
-            else
-            {
-                // 功能键等
-                switch (keyStr)
+                // 使用 WPF 的 Key 转换
+                if (Enum.TryParse(keyStr, true, out Key wpfKey))
                 {
-                    case "F1": key = 0x70; return true;
-                    case "F2": key = 0x71; return true;
-                    case "F3": key = 0x72; return true;
-                    case "F4": key = 0x73; return true;
-                    case "F5": key = 0x74; return true;
-                    case "F6": key = 0x75; return true;
-                    case "F7": key = 0x76; return true;
-                    case "F8": key = 0x77; return true;
-                    case "F9": key = 0x78; return true;
-                    case "F10": key = 0x79; return true;
-                    case "F11": key = 0x7A; return true;
-                    case "F12": key = 0x7B; return true;
-                    case "P": key = 0x50; return true;
-                    case "R": key = 0x52; return true;
+                    key = (uint)KeyInterop.VirtualKeyFromKey(wpfKey);
+                    if (key != 0) return true;
                 }
+            }
+            catch { }
+
+            // 备用手动映射（针对某些特殊情况）
+            string keyStrUpper = keyStr.ToUpper();
+            if (keyStrUpper.Length == 1 && keyStrUpper[0] >= 'A' && keyStrUpper[0] <= 'Z')
+            {
+                key = (uint)keyStrUpper[0];
+                return true;
+            }
+            else if (keyStrUpper.Length == 1 && keyStrUpper[0] >= '0' && keyStrUpper[0] <= '9')
+            {
+                key = (uint)keyStrUpper[0];
+                return true;
             }
             
             return false;
@@ -1144,6 +1202,17 @@ namespace WpfApp1
                         if (ProgramListBox.SelectedItem != null)
                         {
                             ResumeGame_Click(null, null);
+                        }
+                    });
+                    handled = true;
+                }
+                else if (id == HOTKEY_ID_TOGGLE)
+                {
+                    // 处理二合一热键
+                    Dispatcher.Invoke(() => {
+                        if (ProgramListBox.SelectedItem != null)
+                        {
+                            TogglePause_Click(null, null);
                         }
                     });
                     handled = true;

@@ -55,13 +55,13 @@ namespace WpfApp1
             }
         }
 
-        public static void PauseProcess(string exeName)
+        public static void PauseProcess(string exeName, bool minimizeOnPause = true)
         {
             if (!CheckPsSuspend()) return;
 
             string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
             Process[] processes = Process.GetProcessesByName(nameWithoutExt);
-            if (processes.Length > 0)
+            if (processes.Length > 0 && minimizeOnPause)
             {
                 try
                 {
@@ -75,7 +75,7 @@ namespace WpfApp1
             RunCommand($"PsSuspend \"{exeName}\"");
         }
 
-        public static void ResumeProcess(string exeName)
+        public static void ResumeProcess(string exeName, bool minimizeOnPause = true)
         {
             if (!CheckPsSuspend()) return;
             RunCommand($"PsSuspend -r \"{exeName}\"");
@@ -83,7 +83,7 @@ namespace WpfApp1
             // 恢复后自动弹出窗口
             string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
             Process[] processes = Process.GetProcessesByName(nameWithoutExt);
-            if (processes.Length > 0)
+            if (processes.Length > 0 && minimizeOnPause)
             {
                 try
                 {

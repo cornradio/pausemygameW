@@ -65,11 +65,12 @@
                     <MenuItem x:Name="TwoButtonModeMenuItem" Header="✓ Two Buttons (Default)" Click="SwitchToTwoButton_Click" Foreground="#000000"/>
                     <MenuItem x:Name="FourButtonModeMenuItem" Header="Four Buttons" Click="SwitchToFourButton_Click" Foreground="#000000"/>
                 </MenuItem>
-                <MenuItem Header="Hotkeys" Foreground="#ffffff">
+                <MenuItem Header="Settings (设置)" Foreground="#ffffff">
                     <MenuItem x:Name="PauseHotkeyMenuItem" Header="Pause (Ctrl+Alt+P)" Click="PauseGame_Click" Foreground="#000000"/>
                     <MenuItem x:Name="ResumeHotkeyMenuItem" Header="Resume (Ctrl+Alt+R)" Click="ResumeGame_Click" Foreground="#000000"/>
+                    <MenuItem x:Name="ToggleHotkeyMenuItem" Header="Toggle (二合一)" Click="TogglePause_Click" Foreground="#000000"/>
                     <Separator/>
-                    <MenuItem Header="Configure Hotkeys" Click="ConfigHotkeys_Click" Foreground="#000000"/>
+                    <MenuItem Header="Configure (配置)" Click="ConfigHotkeys_Click" Foreground="#000000"/>
                 </MenuItem>
                 <MenuItem Header="Help" Foreground="#ffffff">
                     <MenuItem Header="GitHub-使用帮助" Click="OpenGitHub_Click" Foreground="#000000"/>
