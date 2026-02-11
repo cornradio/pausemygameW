@@ -14,7 +14,7 @@ dotnet publish -c Release
 if (!(Test-Path -Path "out")) {
     New-Item -ItemType Directory -Path "out" | Out-Null
 }
-$sourcePath = "bin\Release\net8.0-windows\win-x64\publish\WpfApp1.exe"
+$sourcePath = "bin\Release\net9.0-windows7.0\win-x64\publish\WpfApp1.exe"
 $destinationPath =  "out\PMG.exe"
 Write-Host "copy to out..." -ForegroundColor Cyan
 Copy-Item -Path $sourcePath -Destination $destinationPath -Force
