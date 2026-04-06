@@ -262,7 +262,8 @@ namespace WpfApp1
                 byte[] bytes = Convert.FromBase64String(base64String);
                 using (var stream = new MemoryStream(bytes))
                 {
-                    var decoder = new PngBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.Default);
+                    // 使用 OnLoad 确保图片被完整读入内存，否则 stream 释放后图片将无法显示
+                    var decoder = new PngBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
                     return decoder.Frames[0];
                 }
             }
@@ -293,9 +294,53 @@ namespace WpfApp1
                     {
                         if (!string.IsNullOrWhiteSpace(gameName))
                         {
-                            ProgramListBox.Items.Add(gameName);
+                            var item = new GameListItem { ExeName = gameName };
+                            
+                            // 加载基本信息
+                            if (gameDatabase.ContainsKey(gameName))
+                            {
+                                var info = gameDatabase[gameName];
+                                if (!string.IsNullOrEmpty(info.DisplayName))
+                                    item.DisplayName = info.DisplayName;
+                                else
+                                    item.DisplayName = gameName;
+
+                                if (!string.IsNullOrEmpty(info.IconBase64))
+                                    item.Icon = ConvertBase64ToBitmapSource(info.IconBase64);
+                                    
+                                // 如果有路径但没图标，尝试后台提取
+                                if (item.Icon == null && !string.IsNullOrEmpty(info.ExePath) && File.Exists(info.ExePath))
+                                {
+                                    try {
+                                        var icon = ExtractIconFromExe(info.ExePath);
+                                        if (icon != null) {
+                                            item.Icon = icon;
+                                            info.IconBase64 = ConvertBitmapSourceToBase64(icon);
+                                        }
+                                    } catch {}
+                                }
+                            }
+                            else
+                            {
+                                item.DisplayName = gameName;
+                            }
+                            // 如果还是没图标，尝试找一下路径
+                            if (item.Icon == null)
+                            {
+                                string? p = FindExePath(gameName);
+                                if (p != null) {
+                                    var icon = ExtractIconFromExe(p);
+                                    if (icon != null) {
+                                        item.Icon = icon;
+                                        UpdateDatabase(gameName, p, icon);
+                                    }
+                                }
+                            }
+                            
+                            ProgramListBox.Items.Add(item);
                         }
                     }
+                    SaveDatabase(); // 保存新发现的图标到数据库
                     
                     // 选择第一个程序
                     if (ProgramListBox.Items.Count > 0)
@@ -321,11 +366,11 @@ namespace WpfApp1
             try
             {
                 var gameNames = new List<string>();
-                foreach (var item in ProgramListBox.Items)
+                foreach (var objItem in ProgramListBox.Items)
                 {
-                    if (item != null)
+                    if (objItem is GameListItem item)
                     {
-                        string gameName = item.ToString();
+                        string gameName = item.ExeName;
                         if (!string.IsNullOrWhiteSpace(gameName))
                         {
                             gameNames.Add(gameName);
@@ -509,6 +554,11 @@ namespace WpfApp1
                         
                         // 更新数据库
                         UpdateDatabase(exeName, exePath, iconImage);
+                        
+                        // 同时更新列表中的图标
+                        var listItem = GetItemByExeName(exeName);
+                        if (listItem != null) listItem.Icon = iconImage;
+                        
                         return;
                     }
                 }
@@ -516,9 +566,13 @@ namespace WpfApp1
                 // 3. 尝试从数据库加载图标
                 if (gameDatabase.ContainsKey(exeName) && !string.IsNullOrEmpty(gameDatabase[exeName].IconBase64))
                 {
-                    BitmapSource dbIcon = ConvertBase64ToBitmapSource(gameDatabase[exeName].IconBase64);
+                    BitmapSource? dbIcon = ConvertBase64ToBitmapSource(gameDatabase[exeName].IconBase64);
                     if (dbIcon != null)
                     {
+                        // 更新列表中的图标
+                        var listItem = GetItemByExeName(exeName);
+                        if (listItem != null) listItem.Icon = dbIcon;
+
                         // 显示数据库中的图标
                         WPFImage iconControl = new WPFImage
                         {
@@ -616,7 +670,98 @@ namespace WpfApp1
 
         private string GetSelectedGame()
         {
-            return ProgramListBox.SelectedItem?.ToString();
+            if (ProgramListBox.SelectedItem is GameListItem item)
+            {
+                return item.ExeName;
+            }
+            return null;
+        }
+
+        private GameListItem GetItemByExeName(string exeName)
+        {
+            foreach (var objItem in ProgramListBox.Items)
+            {
+                if (objItem is GameListItem gameItem && string.Equals(gameItem.ExeName, exeName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return gameItem;
+                }
+            }
+            return null;
+        }
+
+        private void RenameGame_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ProgramListBox.SelectedItem as GameListItem;
+            if (item == null) return;
+
+            var dialog = new EditNameDialog(item.DisplayName);
+            dialog.Owner = this;
+            if (dialog.ShowDialog() == true)
+            {
+                string newName = dialog.EnteredName;
+                if (!gameDatabase.ContainsKey(item.ExeName))
+                {
+                    gameDatabase[item.ExeName] = new GameInfo();
+                }
+                
+                gameDatabase[item.ExeName].DisplayName = string.IsNullOrWhiteSpace(newName) ? item.ExeName : newName.Trim();
+                item.DisplayName = gameDatabase[item.ExeName].DisplayName;
+                SaveDatabase();
+            }
+        }
+
+        public class EditNameDialog : Window
+        {
+            public string EnteredName { get; private set; } = string.Empty;
+            private System.Windows.Controls.TextBox txtName;
+
+            public EditNameDialog(string currentName)
+            {
+                Title = "修改备注名称";
+                Width = 320;
+                Height = 150;
+                WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                ResizeMode = ResizeMode.NoResize;
+                Background = new SolidColorBrush((MediaColor)System.Windows.Media.ColorConverter.ConvertFromString("#2b2b2b"));
+
+                var grid = new Grid { Margin = new Thickness(16) };
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                var lbl = new TextBlock { Text = "输入新的备注名称 (留空恢复原名):", Foreground = new SolidColorBrush(MediaColor.FromRgb(224,224,224)), Margin = new Thickness(0,0,0,8) };
+                grid.Children.Add(lbl);
+
+                txtName = new System.Windows.Controls.TextBox { 
+                    Text = currentName, 
+                    Background = new SolidColorBrush((MediaColor)System.Windows.Media.ColorConverter.ConvertFromString("#3c3f41")),
+                    Foreground = System.Windows.Media.Brushes.White,
+                    Padding = new Thickness(5),
+                    Margin = new Thickness(0,0,0,12)
+                };
+                Grid.SetRow(txtName, 1);
+                grid.Children.Add(txtName);
+
+                var sp = new StackPanel { 
+                    Orientation = System.Windows.Controls.Orientation.Horizontal, 
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Right 
+                };
+                Grid.SetRow(sp, 2);
+
+                var btnOk = new System.Windows.Controls.Button { Content = "确定", Width = 90, Height = 28, Margin = new Thickness(0,0,8,0), Background = new SolidColorBrush((MediaColor)System.Windows.Media.ColorConverter.ConvertFromString("#3c3f41")), Foreground = System.Windows.Media.Brushes.White };
+                btnOk.Click += (s, e) => { EnteredName = txtName.Text; DialogResult = true; };
+                btnOk.IsDefault = true;
+
+                var btnCancel = new System.Windows.Controls.Button { Content = "取消", Width = 90, Height = 28, Background = new SolidColorBrush((MediaColor)System.Windows.Media.ColorConverter.ConvertFromString("#3c3f41")), Foreground = System.Windows.Media.Brushes.White };
+                btnCancel.Click += (s, e) => DialogResult = false;
+                btnCancel.IsCancel = true;
+
+                sp.Children.Add(btnOk);
+                sp.Children.Add(btnCancel);
+                grid.Children.Add(sp);
+
+                Content = grid;
+            }
         }
 
 
@@ -719,13 +864,15 @@ namespace WpfApp1
 
             // 保存当前选中的项
             var selectedItem = ProgramListBox.SelectedItem;
+            var draggedItemObj = GetItemByExeName(draggedItemData);
+            if (draggedItemObj == null) return;
 
             // 移除拖拽的项
             ProgramListBox.Items.RemoveAt(draggedIndex);
 
-            // 计算新的插入位置（如果向下拖，插入到目标位置；如果向上拖，插入到目标位置之前）
-            int newIndex = draggedIndex < targetIndex ? targetIndex : targetIndex;
-            ProgramListBox.Items.Insert(newIndex, draggedItemData);
+            // 计算新的插入位置
+            int newIndex = targetIndex; 
+            ProgramListBox.Items.Insert(newIndex, draggedItemObj);
 
             // 恢复选中状态
             ProgramListBox.SelectedItem = selectedItem;
@@ -820,6 +967,30 @@ namespace WpfApp1
 
         private void UpdateButtonStates()
         {
+            // 更新列表中所有项的小绿点状态
+            foreach (var objItem in ProgramListBox.Items)
+            {
+                if (objItem is GameListItem item)
+                {
+                    bool running = ProcessLogic.IsProcessRunning(item.ExeName);
+                    if (item.IsRunning != running)
+                    {
+                        item.IsRunning = running;
+                    }
+                    if (item.Icon == null && running)
+                    {
+                        string p = FindExePath(item.ExeName);
+                        if (p != null) {
+                           BitmapSource b = ExtractIconFromExe(p);
+                           if (b != null) {
+                               item.Icon = b;
+                               UpdateDatabase(item.ExeName, p, b);
+                           }
+                        }
+                    }
+                }
+            }
+
             string gameName = GetSelectedGame();
             if (string.IsNullOrEmpty(gameName)) return;
 
@@ -1612,8 +1783,51 @@ namespace WpfApp1
 
     public class GameInfo
     {
-        public string ExePath { get; set; }
-        public string IconBase64 { get; set; }
+        public string? ExePath { get; set; }
+        public string? IconBase64 { get; set; }
+        public string? DisplayName { get; set; }
     }
 
+    public class GameListItem : System.ComponentModel.INotifyPropertyChanged
+    {
+        private string _exeName = string.Empty;
+        private string _displayName = string.Empty;
+        private BitmapSource? _icon;
+        private bool _isRunning;
+
+        public string ExeName
+        {
+            get => _exeName;
+            set { _exeName = value; OnPropertyChanged(nameof(ExeName)); }
+        }
+
+        public string DisplayName
+        {
+            get => _displayName;
+            set { _displayName = value; OnPropertyChanged(nameof(DisplayName)); }
+        }
+
+        public BitmapSource? Icon
+        {
+            get => _icon;
+            set { _icon = value; OnPropertyChanged(nameof(Icon)); }
+        }
+
+        public bool IsRunning
+        {
+            get => _isRunning;
+            set { _isRunning = value; OnPropertyChanged(nameof(IsRunning)); }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+        }
+
+        public override string ToString()
+        {
+            return ExeName;
+        }
+    }
 }
