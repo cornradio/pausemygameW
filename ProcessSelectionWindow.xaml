@@ -35,7 +35,7 @@
         </Grid.RowDefinitions>
         
         
-        <ListBox x:Name="ProcessListBox" Grid.Row="1" Background="#3c3f41" Foreground="#ffffff" BorderThickness="0" Margin="0,0,0,10">
+        <ListBox x:Name="ProcessListBox" Grid.Row="1" Background="#3c3f41" Foreground="#ffffff" BorderThickness="0" Margin="0,0,0,10" MouseDoubleClick="ProcessListBox_MouseDoubleClick">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid Margin="5">

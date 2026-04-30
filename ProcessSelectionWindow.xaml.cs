@@ -33,6 +33,11 @@ namespace WpfApp1
             DialogResult = false;
             Close();
         }
+
+        private void ProcessListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            Select_Click(sender, e);
+        }
     }
 
     public class ProcessItem

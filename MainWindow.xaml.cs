@@ -94,6 +94,36 @@ namespace WpfApp1
 
             InitializeTrayIcon();
             InitializeStatusTimer();
+            
+            // 应用保存的按钮模式
+            ApplyButtonMode();
+        }
+
+        private void ApplyButtonMode()
+        {
+            try
+            {
+                if (hotkeys.ContainsKey("buttonMode") && hotkeys["buttonMode"] == "FourButton")
+                {
+                    TwoButtonPanel.Visibility = Visibility.Collapsed;
+                    FourButtonPanel.Visibility = Visibility.Visible;
+                    TwoButtonModeMenuItem.Header = "Two Buttons (Default)";
+                    FourButtonModeMenuItem.Header = "✓ Four Buttons";
+                }
+                else
+                {
+                    TwoButtonPanel.Visibility = Visibility.Visible;
+                    FourButtonPanel.Visibility = Visibility.Collapsed;
+                    TwoButtonModeMenuItem.Header = "✓ Two Buttons (Default)";
+                    FourButtonModeMenuItem.Header = "Four Buttons";
+                }
+            }
+            catch (Exception)
+            {
+                // 如果应用按钮模式失败，使用默认的两按钮模式
+                TwoButtonPanel.Visibility = Visibility.Visible;
+                FourButtonPanel.Visibility = Visibility.Collapsed;
+            }
         }
 
         private void InitializeStatusTimer()
@@ -1057,6 +1087,8 @@ namespace WpfApp1
             FourButtonPanel.Visibility = Visibility.Collapsed;
             TwoButtonModeMenuItem.Header = "✓ Two Buttons (Default)";
             FourButtonModeMenuItem.Header = "Four Buttons";
+            hotkeys["buttonMode"] = "TwoButton";
+            SaveHotkeys();
             UpdateButtonStates();
         }
 
@@ -1066,6 +1098,8 @@ namespace WpfApp1
             FourButtonPanel.Visibility = Visibility.Visible;
             TwoButtonModeMenuItem.Header = "Two Buttons (Default)";
             FourButtonModeMenuItem.Header = "✓ Four Buttons";
+            hotkeys["buttonMode"] = "FourButton";
+            SaveHotkeys();
             UpdateButtonStates();
         }
 
@@ -1153,6 +1187,12 @@ namespace WpfApp1
                 {
                     // 保存默认热键配置
                     SaveHotkeys();
+                }
+                
+                // 确保buttonMode键存在（如果没有，默认为TwoButton）
+                if (!hotkeys.ContainsKey("buttonMode"))
+                {
+                    hotkeys["buttonMode"] = "TwoButton";
                 }
                 
                 // 更新菜单项显示当前热键

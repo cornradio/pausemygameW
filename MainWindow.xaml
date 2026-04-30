@@ -31,6 +31,54 @@
             <Setter Property="Padding" Value="5"/>
             <Setter Property="Margin" Value="0,0,5,0"/>
         </Style>
+        
+        <!-- 自定义滚动条样式 - 窄黑色滚动条 -->
+        <Style x:Key="NarrowDarkScrollBar" TargetType="ScrollBar">
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="{TemplateBinding Background}">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="#555555" CornerRadius="4" Margin="1"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="NarrowDarkScrollViewer" TargetType="ScrollViewer">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ScrollContentPresenter Grid.Column="0"/>
+                            <ScrollBar x:Name="PART_VerticalScrollBar" 
+                                      Grid.Column="1" 
+                                      Value="{TemplateBinding VerticalOffset}"
+                                      Maximum="{TemplateBinding ScrollableHeight}"
+                                      ViewportSize="{TemplateBinding ViewportHeight}"
+                                      Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                      Style="{StaticResource NarrowDarkScrollBar}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -128,6 +176,8 @@
                              BorderThickness="0"
                              MinWidth="230"
                              HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
                              SelectionChanged="ProgramListBox_SelectionChanged"
                              PreviewMouseLeftButtonDown="ProgramListBox_PreviewMouseLeftButtonDown"
                              MouseMove="ProgramListBox_MouseMove"
@@ -160,6 +210,52 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                         <ListBox.Resources>
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ScrollViewer">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ScrollContentPresenter Grid.Column="0"/>
+                                                <ScrollBar x:Name="PART_VerticalScrollBar" 
+                                                          Grid.Column="1" 
+                                                          Value="{TemplateBinding VerticalOffset}"
+                                                          Maximum="{TemplateBinding ScrollableHeight}"
+                                                          ViewportSize="{TemplateBinding ViewportHeight}"
+                                                          Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                                          Width="8"
+                                                          Background="Transparent"/>
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                            <Style TargetType="ScrollBar">
+                                <Setter Property="Width" Value="8"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ScrollBar">
+                                            <Grid Background="{TemplateBinding Background}">
+                                                <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                                    <Track.Thumb>
+                                                        <Thumb>
+                                                            <Thumb.Template>
+                                                                <ControlTemplate TargetType="Thumb">
+                                                                    <Border Background="#555555" CornerRadius="4" Margin="1"/>
+                                                                </ControlTemplate>
+                                                            </Thumb.Template>
+                                                        </Thumb>
+                                                    </Track.Thumb>
+                                                </Track>
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Padding" Value="10,8"/>
                                 <Setter Property="Template">
