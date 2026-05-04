@@ -21,6 +21,27 @@ namespace WpfApp1
                 string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
                 return Process.GetProcessesByName(nameWithoutExt).Length > 0;
             }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool? IsProcessRunningWithAccessCheck(string exeName)
+        {
+            try
+            {
+                string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
+                return Process.GetProcessesByName(nameWithoutExt).Length > 0;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return null;
+            }
             catch
             {
                 return false;
@@ -35,19 +56,47 @@ namespace WpfApp1
                 Process[] processes = Process.GetProcessesByName(nameWithoutExt);
                 if (processes.Length == 0) return false;
 
-                // 检查主进程的所有线程是否都处于挂起或等待状态
-                // 注意：这并不是 100% 准确，但对于一般游戏暂停检测足够了
                 foreach (ProcessThread thread in processes[0].Threads)
                 {
                     if (thread.ThreadState != System.Diagnostics.ThreadState.Wait || 
                         thread.WaitReason != ThreadWaitReason.Suspended)
                     {
-                        // 如果有任何一个线程不是挂起状态，我们认为进程还在运行
-                        // PsSuspend 通常会挂起所有线程
                         return false;
                     }
                 }
                 return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool? IsProcessSuspendedWithAccessCheck(string exeName)
+        {
+            try
+            {
+                string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
+                Process[] processes = Process.GetProcessesByName(nameWithoutExt);
+                if (processes.Length == 0) return false;
+
+                foreach (ProcessThread thread in processes[0].Threads)
+                {
+                    if (thread.ThreadState != System.Diagnostics.ThreadState.Wait || 
+                        thread.WaitReason != ThreadWaitReason.Suspended)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return null;
             }
             catch
             {

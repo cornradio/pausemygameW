@@ -447,14 +447,24 @@ namespace WpfApp1
                 
                 return null;
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                // 跳过报错，有的游戏是有加密措施的禁止读取图标icon
-                // 在运行状态中提示-无法获取游戏允许状态，禁止读取
                 StatusLabel.Text = $"无法获取游戏允许状态，禁止读取";
                 StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
 
-                // WPFMessageBox.Show($"查找进程时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                var listItem = GetItemByExeName(exeName);
+                if (listItem != null) listItem.AccessDenied = true;
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Text = $"无法获取游戏允许状态，禁止读取";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+
+                var listItem = GetItemByExeName(exeName);
+                if (listItem != null) listItem.AccessDenied = true;
+
                 return null;
             }
         }
@@ -997,25 +1007,27 @@ namespace WpfApp1
 
         private void UpdateButtonStates()
         {
-            // 更新列表中所有项的小绿点状态
             foreach (var objItem in ProgramListBox.Items)
             {
                 if (objItem is GameListItem item)
                 {
-                    bool running = ProcessLogic.IsProcessRunning(item.ExeName);
-                    if (item.IsRunning != running)
+                    if (!item.AccessDenied)
                     {
-                        item.IsRunning = running;
-                    }
-                    if (item.Icon == null && running)
-                    {
-                        string p = FindExePath(item.ExeName);
-                        if (p != null) {
-                           BitmapSource b = ExtractIconFromExe(p);
-                           if (b != null) {
-                               item.Icon = b;
-                               UpdateDatabase(item.ExeName, p, b);
-                           }
+                        bool running = ProcessLogic.IsProcessRunning(item.ExeName);
+                        if (item.IsRunning != running)
+                        {
+                            item.IsRunning = running;
+                        }
+                        if (item.Icon == null && running)
+                        {
+                            string p = FindExePath(item.ExeName);
+                            if (p != null) {
+                               BitmapSource b = ExtractIconFromExe(p);
+                               if (b != null) {
+                                   item.Icon = b;
+                                   UpdateDatabase(item.ExeName, p, b);
+                               }
+                            }
                         }
                     }
                 }
@@ -1024,8 +1036,15 @@ namespace WpfApp1
             string gameName = GetSelectedGame();
             if (string.IsNullOrEmpty(gameName)) return;
 
-            bool isRunning = ProcessLogic.IsProcessRunning(gameName);
-            bool isSuspended = ProcessLogic.IsProcessSuspended(gameName);
+            var selectedItem = GetItemByExeName(gameName);
+            bool isRunning = selectedItem?.AccessDenied == true || ProcessLogic.IsProcessRunning(gameName);
+            bool isSuspended = selectedItem?.AccessDenied == true ? false : ProcessLogic.IsProcessSuspended(gameName);
+
+            if (selectedItem?.AccessDenied == true)
+            {
+                StatusLabel.Text = "无法获取游戏允许状态，禁止读取";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+            }
 
             // 更新两按钮模式
             if (isSuspended)
@@ -1834,6 +1853,7 @@ namespace WpfApp1
         private string _displayName = string.Empty;
         private BitmapSource? _icon;
         private bool _isRunning;
+        private bool _accessDenied;
 
         public string ExeName
         {
@@ -1857,6 +1877,12 @@ namespace WpfApp1
         {
             get => _isRunning;
             set { _isRunning = value; OnPropertyChanged(nameof(IsRunning)); }
+        }
+
+        public bool AccessDenied
+        {
+            get => _accessDenied;
+            set { _accessDenied = value; OnPropertyChanged(nameof(AccessDenied)); }
         }
 
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
