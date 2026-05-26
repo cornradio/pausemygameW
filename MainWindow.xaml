@@ -90,15 +90,17 @@
         <!-- 标题栏区域 -->
         <Grid Grid.Row="0" Background="#3c3f41">
             <Menu Background="Transparent" Foreground="#ffffff" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <MenuItem Header="File" Foreground="#ffffff">
-                    <MenuItem Header="Add" Click="AddProgram_Click" Foreground="#000000"/>
-                    <MenuItem Header="Reload Config" Click="ReloadConfig_Click" Foreground="#000000"/>
-                    <MenuItem Header="Edit Config" Click="EditConfig_Click" Foreground="#000000"/>
-                    <MenuItem Header="Show Database" Click="ShowDatabase_Click" Foreground="#000000"/>
+                <MenuItem Header="文件" Foreground="#ffffff">
+                    <MenuItem Header="添加程序" Click="AddProgram_Click" Foreground="#000000"/>
                     <Separator/>
-                    <MenuItem Header="Exit" Click="Exit_Click" Foreground="#000000"/>
+                    <MenuItem Header="退出" Click="Exit_Click" Foreground="#000000"/>
                 </MenuItem>
-                <MenuItem Header="Tools" Foreground="#ffffff">
+                <MenuItem Header="排序" Foreground="#ffffff">
+                    <MenuItem Header="按名称 (A-Z)" Click="SortByName_Click" Foreground="#000000"/>
+                    <MenuItem Header="按上次使用" Click="SortByLastUsed_Click" Foreground="#000000"/>
+                    <MenuItem Header="手动排序" Click="SortByManual_Click" Foreground="#000000"/>
+                </MenuItem>
+                <MenuItem Header="工具" Foreground="#ffffff">
                     <MenuItem Header="taskmgr - 任务管理器" Click="OpenTaskManager_Click" Foreground="#000000"/>
                     <MenuItem Header="resmon.exe - 资源监视器" Click="Openresmon_Click" Foreground="#000000"/>
                     <MenuItem Header="devmgmt.msc - 设备管理器" Click="Opendevmgmt_Click" Foreground="#000000"/>
@@ -109,20 +111,25 @@
                     <MenuItem Header="powershell" Click="Openpowershell_Click" Foreground="#000000"/>
                     <MenuItem Header="cmd - 命令提示符" Click="Opencmd_Click" Foreground="#000000"/>
                 </MenuItem>
-                <MenuItem Header="Mode" Foreground="#ffffff">
-                    <MenuItem x:Name="TwoButtonModeMenuItem" Header="✓ Two Buttons (Default)" Click="SwitchToTwoButton_Click" Foreground="#000000"/>
-                    <MenuItem x:Name="FourButtonModeMenuItem" Header="Four Buttons" Click="SwitchToFourButton_Click" Foreground="#000000"/>
+                <MenuItem Header="模式" Foreground="#ffffff">
+                    <MenuItem x:Name="TwoButtonModeMenuItem" Header="✓ 两按钮模式" Click="SwitchToTwoButton_Click" Foreground="#000000"/>
+                    <MenuItem x:Name="FourButtonModeMenuItem" Header="四按钮模式" Click="SwitchToFourButton_Click" Foreground="#000000"/>
                 </MenuItem>
-                <MenuItem Header="Settings" Foreground="#ffffff">
-                    <MenuItem x:Name="PauseHotkeyMenuItem" Header="Pause (Ctrl+Alt+P)" Click="PauseGame_Click" Foreground="#000000"/>
-                    <MenuItem x:Name="ResumeHotkeyMenuItem" Header="Resume (Ctrl+Alt+R)" Click="ResumeGame_Click" Foreground="#000000"/>
-                    <MenuItem x:Name="ToggleHotkeyMenuItem" Header="Toggle (二合一)" Click="TogglePause_Click" Foreground="#000000"/>
+                <MenuItem Header="设置" Foreground="#ffffff">
+                    <MenuItem x:Name="PauseHotkeyMenuItem" Header="暂停 (Ctrl+Alt+P)" Click="PauseGame_Click" Foreground="#000000"/>
+                    <MenuItem x:Name="ResumeHotkeyMenuItem" Header="恢复 (Ctrl+Alt+R)" Click="ResumeGame_Click" Foreground="#000000"/>
+                    <MenuItem x:Name="ToggleHotkeyMenuItem" Header="切换 (二合一)" Click="TogglePause_Click" Foreground="#000000"/>
                     <Separator/>
-                    <MenuItem Header="Configure (配置)" Click="ConfigHotkeys_Click" Foreground="#000000"/>
+                    <MenuItem Header="删除时无需确认" Click="ToggleDeleteNoConfirm_Click" Foreground="#000000" x:Name="DeleteNoConfirmMenuItem"/>
+                    <Separator/>
+                    <MenuItem Header="配置热键" Click="ConfigHotkeys_Click" Foreground="#000000"/>
                 </MenuItem>
-                <MenuItem Header="Help" Foreground="#ffffff">
+                <MenuItem Header="帮助" Foreground="#ffffff">
                     <MenuItem Header="GitHub-使用帮助" Click="OpenGitHub_Click" Foreground="#000000"/>
-                    <MenuItem Header="pssuspend-需要额外下载的插件" Click="OpenPssuspend_Click" Foreground="#000000"/>
+                    <Separator/>
+                    <MenuItem Header="下载 pssuspend" Click="DownloadPssuspend_Click" Foreground="#000000"/>
+                    <MenuItem Header="打开程序目录 (放置 pssuspend)" Click="OpenPssuspend_Click" Foreground="#000000"/>
+                    <Separator/>
                     <MenuItem Header="bilibili-教程" Click="OpenBilibili_Click" Foreground="#000000"/>
                 </MenuItem>
             </Menu>
@@ -130,8 +137,8 @@
             <TextBlock x:Name="StatusLabel" Text="Game Status untouched" Foreground="#787878" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" IsHitTestVisible="False"/>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <Button Content="━" Click="Minimize_Click" Style="{StaticResource IconButton}" Width="40" Height="30" ToolTip="最小化到任务栏"/>
-                <Button Content="📥" Click="Tray_Click" Style="{StaticResource IconButton}" Width="40" Height="30" ToolTip="缩小到托盘"/>
+                <Button Content="—" Click="Minimize_Click" Style="{StaticResource IconButton}" Width="40" Height="30" ToolTip="最小化到任务栏"/>
+                <Button Content="❌" Click="Tray_Click" Style="{StaticResource IconButton}" Width="40" Height="30" ToolTip="缩小到托盘"/>
             </StackPanel>
         </Grid>
 
@@ -160,12 +167,11 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <Button Content="🔍" Click="SearchProcess_Click" Style="{StaticResource IconButton}" ToolTip="Search Top Processes" Foreground="White"/>
-                            <Button Content="➕" Click="AddProgram_Click" Style="{StaticResource IconButton}" ToolTip="Add Game"/>
+                            <Button Content="➕" Click="SearchProcess_Click" Style="{StaticResource IconButton}" ToolTip="Search Top Processes" Foreground="White"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <Button Content="🗑️" Click="DeleteGame_Click" Style="{StaticResource IconButton}" ToolTip="Delete Game"/>
+                            <Button Content="⌫" Click="DeleteGame_Click" Style="{StaticResource IconButton}" ToolTip="Delete Game"/>
                         </StackPanel>
                     </Grid>
 

@@ -1,0 +1,21 @@
+// GTA V ENHANCED ASI LOADER (build Mar 22 2025)
+//     (C) Alexander Blade 2025
+LIB: "C:\WINDOWS\system32\xinput1_4.dll" => 00007FFB50D80000
+API: "DllMain" => 00007FFB50D89B00
+API: "XInputGetState" => 00007FFB50D8ADB0
+API: "XInputSetState" => 00007FFB50D8B2F0
+API: "XInputGetCapabilities" => 00007FFB50D8A900
+API: "XInputEnable" => 00007FFB50D8A190
+API: "XInputGetBatteryInformation" => 00007FFB50D8A6B0
+API: "XInputGetKeystroke" => 00007FFB50D8ABD0
+API: "XInputGetAudioDeviceIds" => 00007FFB50D8A240
+API: "XINPUT1_4_100" => 00007FFB50D8AF20
+API: "XINPUT1_4_101" => 00007FFB50D8B420
+API: "XINPUT1_4_102" => 00007FFB50D8A090
+API: "XINPUT1_4_103" => 00007FFB50D8B180
+API: "XINPUT1_4_104" => 00007FFB50D8A590
+API: "XINPUT1_4_108" => 00007FFB50D8AA40
+LOADER: Loading *.asi plugins
+ASI: Loading "D:\SteamLibrary\steamapps\common\Grand Theft Auto V Enhanced\NativeTrainer.asi"
+     "NativeTrainer.asi" => 00007FFB50E30000
+LOADER: Finished loading *.asi plugins

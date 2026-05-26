@@ -1,1 +1,15 @@
+Hades2.exe
+forzahorizon6.exe
+PRAGMATA.exe
 GTA5_Enhanced.exe
+SessionGame-Win64-Shipping.exe
+bg3.exe
+GoW.exe
+RDR2.exe
+witcher3.exe
+Cyberpunk2077.exe
+Warhammer 40000 Space Marine 2 - Retail.exe
+re3.exe
+steamwebhelper.exe
+chrome.exe
+Terraria.exe

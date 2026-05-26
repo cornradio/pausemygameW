@@ -14,6 +14,11 @@ namespace WpfApp1
             ProcessListBox.ItemsSource = processes;
         }
 
+        public void RefreshList()
+        {
+            ProcessListBox.Items.Refresh();
+        }
+
         private void Select_Click(object sender, RoutedEventArgs e)
         {
             if (ProcessListBox.SelectedItem is ProcessItem selected)
@@ -44,5 +49,6 @@ namespace WpfApp1
     {
         public string Name { get; set; }
         public string MemoryUsage { get; set; }
+        public System.Windows.Media.ImageSource Icon { get; set; }
     }
 }

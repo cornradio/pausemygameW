@@ -40,11 +40,13 @@
                 <DataTemplate>
                     <Grid Margin="5">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding Name}" Foreground="#ffffff" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="1" Text="{Binding MemoryUsage}" Foreground="#aaaaaa" Margin="10,0,0,0"/>
+                        <Image Source="{Binding Icon}" Width="24" Height="24" VerticalAlignment="Center" Stretch="Uniform"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#ffffff" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding MemoryUsage}" Foreground="#aaaaaa" Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>

@@ -46,7 +46,9 @@ namespace WpfApp1
             { "resume", "Ctrl+Alt+R" },
             { "toggle", "Ctrl+Alt+T" },
             { "minimizeOnPause", "true" },
-            { "enableSound", "true" }
+            { "enableSound", "true" },
+            { "sortMode", "Name" },
+            { "deleteNoConfirm", "false" }
         };
         
         // 用于全局热键的API
@@ -72,11 +74,16 @@ namespace WpfApp1
         private WinForms.NotifyIcon notifyIcon;
         private bool isExiting = false;
         
+        // 当前排序模式
+        private string currentSortMode = "Name";  // Name, LastUsed, Manual
+        
         // 拖放相关
         private object draggedItem = null;
         private System.Windows.Point dragStartPoint;
 
         private DispatcherTimer statusTimer;
+        private bool isUpdatingStates = false;
+        private readonly object updateLock = new object();
 
         public MainWindow()
         {
@@ -107,15 +114,15 @@ namespace WpfApp1
                 {
                     TwoButtonPanel.Visibility = Visibility.Collapsed;
                     FourButtonPanel.Visibility = Visibility.Visible;
-                    TwoButtonModeMenuItem.Header = "Two Buttons (Default)";
-                    FourButtonModeMenuItem.Header = "✓ Four Buttons";
+                    TwoButtonModeMenuItem.Header = "两按钮模式";
+                    FourButtonModeMenuItem.Header = "✓ 四按钮模式";
                 }
                 else
                 {
                     TwoButtonPanel.Visibility = Visibility.Visible;
                     FourButtonPanel.Visibility = Visibility.Collapsed;
-                    TwoButtonModeMenuItem.Header = "✓ Two Buttons (Default)";
-                    FourButtonModeMenuItem.Header = "Four Buttons";
+                    TwoButtonModeMenuItem.Header = "✓ 两按钮模式";
+                    FourButtonModeMenuItem.Header = "四按钮模式";
                 }
             }
             catch (Exception)
@@ -201,16 +208,7 @@ namespace WpfApp1
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            if (!isExiting)
-            {
-                e.Cancel = true;
-                Hide();
-                notifyIcon.ShowBalloonTip(1000, "Pause My Game", "程序已最小化到托盘，点击图标恢复。", WinForms.ToolTipIcon.Info);
-            }
-            else
-            {
-                base.OnClosing(e);
-            }
+            RealExit();
         }
 
         #region 数据库操作
@@ -939,33 +937,93 @@ namespace WpfApp1
 
         private void TogglePause_Click(object sender, RoutedEventArgs e)
         {
-            string gameName = GetSelectedGame();
-            if (string.IsNullOrEmpty(gameName))
+            lock (updateLock)
             {
-                StatusLabel.Text = "请先选择一个程序";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
-                return;
+                if (isUpdatingStates) return;
+                isUpdatingStates = true;
             }
+            
+            try
+            {
+                string gameName = GetSelectedGame();
+                if (string.IsNullOrEmpty(gameName))
+                {
+                    StatusLabel.Text = "请先选择一个程序";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 0));
+                    return;
+                }
 
-            bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
+                bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
 
-            if (ProcessLogic.IsProcessSuspended(gameName))
-            {
-                // 恢复
-                PlayButtonSound("resume");
-                ProcessLogic.ResumeProcess(gameName, minimizeOnPause);
-                StatusLabel.Text = $"▶ {gameName} Resumed";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
+                if (ProcessLogic.IsProcessSuspended(gameName))
+                {
+                    // 恢复
+                    PlayButtonSound("resume");
+                    ProcessLogic.ResumeProcess(gameName, minimizeOnPause);
+                    StatusLabel.Text = $"▶ {gameName} Resumed";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
+                    
+                    // 更新最后使用时间
+                    if (gameDatabase.ContainsKey(gameName))
+                    {
+                        gameDatabase[gameName].LastUsed = DateTime.Now;
+                        SaveDatabase();
+                        
+                        // 如果当前是按上次使用排序，立即重新排序并选中该程序
+                        if (currentSortMode == "LastUsed")
+                        {
+                            SortByLastUsed_Click(null, null);
+                            // 选中被操作的程序
+                            for (int i = 0; i < ProgramListBox.Items.Count; i++)
+                            {
+                                if (ProgramListBox.Items[i] is GameListItem item && item.ExeName == gameName)
+                                {
+                                    ProgramListBox.SelectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // 暂停
+                    PlayButtonSound("pause");
+                    ProcessLogic.PauseProcess(gameName, minimizeOnPause);
+                    StatusLabel.Text = $"⏸ {gameName} Paused";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 255));
+                    
+                    // 更新最后使用时间
+                    if (gameDatabase.ContainsKey(gameName))
+                    {
+                        gameDatabase[gameName].LastUsed = DateTime.Now;
+                        SaveDatabase();
+                        
+                        // 如果当前是按上次使用排序，立即重新排序并选中该程序
+                        if (currentSortMode == "LastUsed")
+                        {
+                            SortByLastUsed_Click(null, null);
+                            // 选中被操作的程序
+                            for (int i = 0; i < ProgramListBox.Items.Count; i++)
+                            {
+                                if (ProgramListBox.Items[i] is GameListItem item && item.ExeName == gameName)
+                                {
+                                    ProgramListBox.SelectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                UpdateButtonStates();
             }
-            else
+            finally
             {
-                // 暂停
-                PlayButtonSound("pause");
-                ProcessLogic.PauseProcess(gameName, minimizeOnPause);
-                StatusLabel.Text = $"⏸ {gameName} Paused";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 255));
+                lock (updateLock)
+                {
+                    isUpdatingStates = false;
+                }
             }
-            UpdateButtonStates();
         }
 
         private void ToggleLaunch_Click(object sender, RoutedEventArgs e)
@@ -1104,8 +1162,8 @@ namespace WpfApp1
         {
             TwoButtonPanel.Visibility = Visibility.Visible;
             FourButtonPanel.Visibility = Visibility.Collapsed;
-            TwoButtonModeMenuItem.Header = "✓ Two Buttons (Default)";
-            FourButtonModeMenuItem.Header = "Four Buttons";
+            TwoButtonModeMenuItem.Header = "✓ 两按钮模式";
+            FourButtonModeMenuItem.Header = "四按钮模式";
             hotkeys["buttonMode"] = "TwoButton";
             SaveHotkeys();
             UpdateButtonStates();
@@ -1115,8 +1173,8 @@ namespace WpfApp1
         {
             TwoButtonPanel.Visibility = Visibility.Collapsed;
             FourButtonPanel.Visibility = Visibility.Visible;
-            TwoButtonModeMenuItem.Header = "Two Buttons (Default)";
-            FourButtonModeMenuItem.Header = "✓ Four Buttons";
+            TwoButtonModeMenuItem.Header = "两按钮模式";
+            FourButtonModeMenuItem.Header = "✓ 四按钮模式";
             hotkeys["buttonMode"] = "FourButton";
             SaveHotkeys();
             UpdateButtonStates();
@@ -1124,29 +1182,127 @@ namespace WpfApp1
 
         private void PauseGame_Click(object sender, RoutedEventArgs e) 
         {
-            string gameName = GetSelectedGame();
-            if (!string.IsNullOrEmpty(gameName))
+            lock (updateLock)
             {
-                bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
-                PlayButtonSound("pause");
-                ProcessLogic.PauseProcess(gameName, minimizeOnPause);
-                StatusLabel.Text = $"⏸ {gameName} Paused";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 255));
-                UpdateButtonStates();
+                if (isUpdatingStates) return;
+                isUpdatingStates = true;
+            }
+            
+            try
+            {
+                string gameName = GetSelectedGame();
+                if (!string.IsNullOrEmpty(gameName))
+                {
+                    // 检查是否已经暂停
+                    if (ProcessLogic.IsProcessSuspended(gameName))
+                    {
+                        StatusLabel.Text = $"⚠ {gameName} 已经在暂停状态";
+                        StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 165, 0));
+                        System.Media.SystemSounds.Exclamation.Play();
+                        UpdateButtonStates();
+                        return;
+                    }
+                    
+                    bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
+                    PlayButtonSound("pause");
+                    ProcessLogic.PauseProcess(gameName, minimizeOnPause);
+                    StatusLabel.Text = $"⏸ {gameName} Paused";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 0, 255));
+                    
+                    // 更新最后使用时间
+                    if (gameDatabase.ContainsKey(gameName))
+                    {
+                        gameDatabase[gameName].LastUsed = DateTime.Now;
+                        SaveDatabase();
+                        
+                        // 如果当前是按上次使用排序，立即重新排序并选中该程序
+                        if (currentSortMode == "LastUsed")
+                        {
+                            SortByLastUsed_Click(null, null);
+                            // 选中被操作的程序
+                            for (int i = 0; i < ProgramListBox.Items.Count; i++)
+                            {
+                                if (ProgramListBox.Items[i] is GameListItem item && item.ExeName == gameName)
+                                {
+                                    ProgramListBox.SelectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    UpdateButtonStates();
+                }
+            }
+            finally
+            {
+                lock (updateLock)
+                {
+                    isUpdatingStates = false;
+                }
             }
         }
 
         private void ResumeGame_Click(object sender, RoutedEventArgs e)
         {
-            string gameName = GetSelectedGame();
-            if (!string.IsNullOrEmpty(gameName))
+            lock (updateLock)
             {
-                bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
-                PlayButtonSound("resume");
-                ProcessLogic.ResumeProcess(gameName, minimizeOnPause);
-                StatusLabel.Text = $"▶ {gameName} Resumed";
-                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
-                UpdateButtonStates();
+                if (isUpdatingStates) return;
+                isUpdatingStates = true;
+            }
+            
+            try
+            {
+                string gameName = GetSelectedGame();
+                if (!string.IsNullOrEmpty(gameName))
+                {
+                    // 检查是否已经暂停（只有暂停的程序才能恢复）
+                    if (!ProcessLogic.IsProcessSuspended(gameName))
+                    {
+                        StatusLabel.Text = $"⚠ {gameName} 未在暂停状态";
+                        StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 165, 0));
+                        System.Media.SystemSounds.Exclamation.Play();
+                        UpdateButtonStates();
+                        return;
+                    }
+                    
+                    bool minimizeOnPause = !hotkeys.ContainsKey("minimizeOnPause") || hotkeys["minimizeOnPause"] == "true";
+                    PlayButtonSound("resume");
+                    ProcessLogic.ResumeProcess(gameName, minimizeOnPause);
+                    StatusLabel.Text = $"▶ {gameName} Resumed";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 255, 0));
+                    
+                    // 更新最后使用时间
+                    if (gameDatabase.ContainsKey(gameName))
+                    {
+                        gameDatabase[gameName].LastUsed = DateTime.Now;
+                        SaveDatabase();
+                        
+                        // 如果当前是按上次使用排序，立即重新排序并选中该程序
+                        if (currentSortMode == "LastUsed")
+                        {
+                            SortByLastUsed_Click(null, null);
+                            // 选中被操作的程序
+                            for (int i = 0; i < ProgramListBox.Items.Count; i++)
+                            {
+                                if (ProgramListBox.Items[i] is GameListItem item && item.ExeName == gameName)
+                                {
+                                    ProgramListBox.SelectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    UpdateButtonStates();
+                }
+            }
+            finally
+            {
+                lock (updateLock)
+                {
+                    isUpdatingStates = false;
+                }
             }
         }
 
@@ -1214,8 +1370,30 @@ namespace WpfApp1
                     hotkeys["buttonMode"] = "TwoButton";
                 }
                 
+                // 加载并应用排序模式
+                if (hotkeys.ContainsKey("sortMode"))
+                {
+                    currentSortMode = hotkeys["sortMode"];
+                    // 根据保存的排序模式重新排序列表
+                    switch (currentSortMode)
+                    {
+                        case "LastUsed":
+                            SortByLastUsed_Click(null, null);
+                            break;
+                        case "Manual":
+                            SortByManual_Click(null, null);
+                            break;
+                        default:
+                            SortByName_Click(null, null);
+                            break;
+                    }
+                }
+                
                 // 更新菜单项显示当前热键
                 UpdateHotkeyMenuItems();
+                
+                // 更新删除确认菜单项
+                UpdateDeleteNoConfirmMenuItem();
             }
             catch (Exception ex)
             {
@@ -1228,17 +1406,46 @@ namespace WpfApp1
             // 更新菜单项显示当前热键
             if (PauseHotkeyMenuItem != null)
             {
-                PauseHotkeyMenuItem.Header = $"Pause ({hotkeys["pause"]})"; 
+                PauseHotkeyMenuItem.Header = $"暂停 ({hotkeys["pause"]})"; 
             }
             
             if (ResumeHotkeyMenuItem != null)
             {
-                ResumeHotkeyMenuItem.Header = $"Resume ({hotkeys["resume"]})"; 
+                ResumeHotkeyMenuItem.Header = $"恢复 ({hotkeys["resume"]})"; 
             }
 
             if (ToggleHotkeyMenuItem != null && hotkeys.ContainsKey("toggle"))
             {
-                ToggleHotkeyMenuItem.Header = $"Toggle ({hotkeys["toggle"]})";
+                ToggleHotkeyMenuItem.Header = $"切换 ({hotkeys["toggle"]})";
+            }
+        }
+        
+        private void ToggleDeleteNoConfirm_Click(object sender, RoutedEventArgs e)
+        {
+            bool currentValue = hotkeys.ContainsKey("deleteNoConfirm") && hotkeys["deleteNoConfirm"] == "true";
+            hotkeys["deleteNoConfirm"] = currentValue ? "false" : "true";
+            SaveHotkeys();
+            
+            UpdateDeleteNoConfirmMenuItem();
+            
+            if (currentValue)
+            {
+                StatusLabel.Text = "删除时需要确认";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 200, 255));
+            }
+            else
+            {
+                StatusLabel.Text = "删除时无需确认";
+                StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 165, 0));
+            }
+        }
+        
+        private void UpdateDeleteNoConfirmMenuItem()
+        {
+            bool noConfirm = hotkeys.ContainsKey("deleteNoConfirm") && hotkeys["deleteNoConfirm"] == "true";
+            if (DeleteNoConfirmMenuItem != null)
+            {
+                DeleteNoConfirmMenuItem.Header = noConfirm ? "✓ 删除时无需确认" : "删除时无需确认";
             }
         }
         
@@ -1543,8 +1750,9 @@ namespace WpfApp1
                 return;
             }
 
-            var result = WPFMessageBox.Show($"从列表中删除 '{gameName}' ?", "删除exe", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (result == MessageBoxResult.Yes)
+            bool noConfirm = hotkeys.ContainsKey("deleteNoConfirm") && hotkeys["deleteNoConfirm"] == "true";
+
+            if (noConfirm || WPFMessageBox.Show($"从列表中删除 '{gameName}' ?", "删除exe", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 if (File.Exists(configFile))
                 {
@@ -1552,9 +1760,9 @@ namespace WpfApp1
                     File.WriteAllLines(configFile, lines);
                     LoadConfig();
                     StatusLabel.Text = $"Deleted {gameName}";
+                    StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 100, 100));
                 }
             }
-
         }
 
         private void ReloadConfig_Click(object sender, RoutedEventArgs e)
@@ -1566,18 +1774,40 @@ namespace WpfApp1
         {
             try
             {
-                // 获取所有进程并按内存使用量排序
+                // 先获取进程列表，不等待图标加载
                 var processes = Process.GetProcesses()
                     .OrderByDescending(p => p.WorkingSet64)
-                    .Take(10) // 取前10个
+                    .Take(30) // 取前30个
                     .Select(p => new ProcessItem
                     {
                         Name = p.ProcessName,
-                        MemoryUsage = $"{(p.WorkingSet64 / 1024 / 1024)} MB"
+                        MemoryUsage = $"{(p.WorkingSet64 / 1024 / 1024)} MB",
+                        Icon = null  // 先不加载图标
                     })
                     .ToList();
 
                 var dialog = new ProcessSelectionWindow(processes) { Owner = this };
+                
+                // 在后台异步加载图标
+                Task.Run(async () =>
+                {
+                    await Task.Delay(100); // 短暂延迟确保窗口已打开
+                    
+                    foreach (var process in processes)
+                    {
+                        var icon = ExtractProcessIcon(process.Name);
+                        if (icon != null)
+                        {
+                            // 在UI线程上更新图标
+                            dialog.Dispatcher.Invoke(() =>
+                            {
+                                process.Icon = icon;
+                                dialog.RefreshList();
+                            });
+                        }
+                    }
+                });
+
                 if (dialog.ShowDialog() == true)
                 {
                     string exeName = dialog.SelectedProcessName;
@@ -1592,6 +1822,47 @@ namespace WpfApp1
             {
                 WPFMessageBox.Show($"搜索进程失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+        
+        private System.Windows.Media.ImageSource ExtractProcessIcon(string processName)
+        {
+            try
+            {
+                string query = $"SELECT ExecutablePath FROM Win32_Process WHERE Name = '{processName}.exe'";
+                using (var searcher = new System.Management.ManagementObjectSearcher(query))
+                {
+                    foreach (System.Management.ManagementObject obj in searcher.Get())
+                    {
+                        string exePath = obj["ExecutablePath"]?.ToString();
+                        if (!string.IsNullOrEmpty(exePath) && System.IO.File.Exists(exePath))
+                        {
+                            using (var icon = System.Drawing.Icon.ExtractAssociatedIcon(exePath))
+                            {
+                                if (icon != null)
+                                {
+                                    var bitmapSource = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                                        icon.Handle,
+                                        Int32Rect.Empty,
+                                        System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                                    
+                                    // 冻结对象，使其可以在其他线程使用
+                                    if (bitmapSource.CanFreeze)
+                                    {
+                                        bitmapSource.Freeze();
+                                    }
+                                    
+                                    return bitmapSource;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略错误，返回null
+            }
+            return null;
         }
 
         private void AddGameToConfig(string exeName)
@@ -1630,6 +1901,74 @@ namespace WpfApp1
                     break;
                 }
             }
+        }
+        
+        private void SortByName_Click(object sender, RoutedEventArgs e)
+        {
+            currentSortMode = "Name";
+            hotkeys["sortMode"] = "Name";
+            SaveHotkeys();
+            var items = ProgramListBox.Items.Cast<GameListItem>().ToList();
+            items.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, StringComparison.OrdinalIgnoreCase));
+            ProgramListBox.Items.Clear();
+            foreach (var item in items)
+            {
+                if (gameDatabase.ContainsKey(item.ExeName))
+                {
+                    gameDatabase[item.ExeName].SortOrder = items.IndexOf(item);
+                    item.SortOrder = items.IndexOf(item);
+                }
+                ProgramListBox.Items.Add(item);
+            }
+            SaveDatabase();
+            StatusLabel.Text = "已按名称排序";
+            StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 200, 255));
+        }
+        
+        private void SortByLastUsed_Click(object sender, RoutedEventArgs e)
+        {
+            currentSortMode = "LastUsed";
+            hotkeys["sortMode"] = "LastUsed";
+            SaveHotkeys();
+            var items = ProgramListBox.Items.Cast<GameListItem>().ToList();
+            items.Sort((a, b) => {
+                var lastUsedA = gameDatabase.ContainsKey(a.ExeName) ? gameDatabase[a.ExeName].LastUsed : DateTime.MinValue;
+                var lastUsedB = gameDatabase.ContainsKey(b.ExeName) ? gameDatabase[b.ExeName].LastUsed : DateTime.MinValue;
+                return lastUsedB.CompareTo(lastUsedA);
+            });
+            ProgramListBox.Items.Clear();
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (gameDatabase.ContainsKey(items[i].ExeName))
+                {
+                    gameDatabase[items[i].ExeName].SortOrder = i;
+                    items[i].SortOrder = i;
+                }
+                ProgramListBox.Items.Add(items[i]);
+            }
+            SaveDatabase();
+            StatusLabel.Text = "已按上次使用排序";
+            StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 200, 255));
+        }
+        
+        private void SortByManual_Click(object sender, RoutedEventArgs e)
+        {
+            currentSortMode = "Manual";
+            hotkeys["sortMode"] = "Manual";
+            SaveHotkeys();
+            var items = ProgramListBox.Items.Cast<GameListItem>().ToList();
+            items.Sort((a, b) => {
+                var orderA = gameDatabase.ContainsKey(a.ExeName) ? gameDatabase[a.ExeName].SortOrder : 0;
+                var orderB = gameDatabase.ContainsKey(b.ExeName) ? gameDatabase[b.ExeName].SortOrder : 0;
+                return orderA.CompareTo(orderB);
+            });
+            ProgramListBox.Items.Clear();
+            foreach (var item in items)
+            {
+                ProgramListBox.Items.Add(item);
+            }
+            StatusLabel.Text = "已按手动排序";
+            StatusLabel.Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 200, 255));
         }
 
         private void AddProgram_Click(object sender, RoutedEventArgs e)
@@ -1763,15 +2102,21 @@ namespace WpfApp1
             });
         }
 
-
-        private void OpenPssuspend_Click(object sender, RoutedEventArgs e)
+        private void DownloadPssuspend_Click(object sender, RoutedEventArgs e)
         {
-           //https://learn.microsoft.com/zh-tw/sysinternals/downloads/pssuspend
+            // 打开 pssuspend 下载页面
             Process.Start(new ProcessStartInfo
             {
                 FileName = "https://learn.microsoft.com/zh-tw/sysinternals/downloads/pssuspend",
                 UseShellExecute = true
             });
+        }
+
+        private void OpenPssuspend_Click(object sender, RoutedEventArgs e)
+        {
+            // 打开程序所在目录，方便放置 pssuspend.exe
+            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+            Process.Start("explorer.exe", exeDir);
         }
 
         private void OpenBilibili_Click(object sender, RoutedEventArgs e)
@@ -1803,11 +2148,7 @@ namespace WpfApp1
 
         private void Tray_Click(object sender, RoutedEventArgs e)
         {
-            this.Hide();
-            if (notifyIcon != null)
-            {
-                notifyIcon.ShowBalloonTip(1000, "Pause My Game", "程序已最小化到托盘，点击图标恢复。", WinForms.ToolTipIcon.Info);
-            }
+            RealExit();
         }
 
         private void Quit_Click(object sender, RoutedEventArgs e)
@@ -1845,6 +2186,8 @@ namespace WpfApp1
         public string? ExePath { get; set; }
         public string? IconBase64 { get; set; }
         public string? DisplayName { get; set; }
+        public int SortOrder { get; set; } = 0;
+        public DateTime LastUsed { get; set; } = DateTime.MinValue;
     }
 
     public class GameListItem : System.ComponentModel.INotifyPropertyChanged
@@ -1854,6 +2197,7 @@ namespace WpfApp1
         private BitmapSource? _icon;
         private bool _isRunning;
         private bool _accessDenied;
+        private int _sortOrder = 0;
 
         public string ExeName
         {
@@ -1884,6 +2228,14 @@ namespace WpfApp1
             get => _accessDenied;
             set { _accessDenied = value; OnPropertyChanged(nameof(AccessDenied)); }
         }
+        
+        public int SortOrder
+        {
+            get => _sortOrder;
+            set { _sortOrder = value; OnPropertyChanged(nameof(SortOrder)); }
+        }
+        
+        public DateTime LastUsed { get; set; } = DateTime.MinValue;
 
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string propertyName)

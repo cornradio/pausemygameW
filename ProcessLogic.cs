@@ -48,60 +48,74 @@ namespace WpfApp1
             }
         }
 
-        public static bool IsProcessSuspended(string exeName)
+        public static bool IsProcessSuspended(string exeName, int timeoutMs = 1000)
         {
-            try
+            var task = System.Threading.Tasks.Task.Run(() =>
             {
-                string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
-                Process[] processes = Process.GetProcessesByName(nameWithoutExt);
-                if (processes.Length == 0) return false;
-
-                foreach (ProcessThread thread in processes[0].Threads)
+                try
                 {
-                    if (thread.ThreadState != System.Diagnostics.ThreadState.Wait || 
-                        thread.WaitReason != ThreadWaitReason.Suspended)
+                    string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
+                    Process[] processes = Process.GetProcessesByName(nameWithoutExt);
+                    if (processes.Length == 0) return false;
+
+                    foreach (ProcessThread thread in processes[0].Threads)
                     {
-                        return false;
+                        if (thread.ThreadState != System.Diagnostics.ThreadState.Wait || 
+                            thread.WaitReason != ThreadWaitReason.Suspended)
+                        {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
-            catch (UnauthorizedAccessException)
+                catch
+                {
+                    return false;
+                }
+            });
+
+            if (task.Wait(timeoutMs))
             {
-                return false;
+                return task.Result;
             }
-            catch
-            {
-                return false;
-            }
+            return false;
         }
 
-        public static bool? IsProcessSuspendedWithAccessCheck(string exeName)
+        public static bool? IsProcessSuspendedWithAccessCheck(string exeName, int timeoutMs = 1000)
         {
-            try
+            var task = System.Threading.Tasks.Task.Run<bool?>(() =>
             {
-                string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
-                Process[] processes = Process.GetProcessesByName(nameWithoutExt);
-                if (processes.Length == 0) return false;
-
-                foreach (ProcessThread thread in processes[0].Threads)
+                try
                 {
-                    if (thread.ThreadState != System.Diagnostics.ThreadState.Wait || 
-                        thread.WaitReason != ThreadWaitReason.Suspended)
+                    string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
+                    Process[] processes = Process.GetProcessesByName(nameWithoutExt);
+                    if (processes.Length == 0) return false;
+
+                    foreach (ProcessThread thread in processes[0].Threads)
                     {
-                        return false;
+                        if (thread.ThreadState != System.Diagnostics.ThreadState.Wait || 
+                            thread.WaitReason != ThreadWaitReason.Suspended)
+                        {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
-            catch (UnauthorizedAccessException)
+                catch (UnauthorizedAccessException)
+                {
+                    return null;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
+
+            if (task.Wait(timeoutMs))
             {
-                return null;
+                return task.Result;
             }
-            catch
-            {
-                return false;
-            }
+            return null;
         }
 
         public static void PauseProcess(string exeName, bool minimizeOnPause = true)
@@ -127,22 +141,28 @@ namespace WpfApp1
         public static void ResumeProcess(string exeName, bool minimizeOnPause = true)
         {
             if (!CheckPsSuspend()) return;
-            RunCommand($"PsSuspend -r \"{exeName}\"");
-
-            // 恢复后自动弹出窗口
-            string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
-            Process[] processes = Process.GetProcessesByName(nameWithoutExt);
-            if (processes.Length > 0 && minimizeOnPause)
+            
+            var task = System.Threading.Tasks.Task.Run(() =>
             {
-                try
+                RunCommand($"PsSuspend -r \"{exeName}\"");
+                
+                // 恢复后自动弹出窗口
+                string nameWithoutExt = Path.GetFileNameWithoutExtension(exeName);
+                Process[] processes = Process.GetProcessesByName(nameWithoutExt);
+                if (processes.Length > 0 && minimizeOnPause)
                 {
-                    if (processes[0].MainWindowHandle != IntPtr.Zero)
+                    try
                     {
-                        ShowWindow(processes[0].MainWindowHandle, SW_RESTORE);
+                        if (processes[0].MainWindowHandle != IntPtr.Zero)
+                        {
+                            ShowWindow(processes[0].MainWindowHandle, SW_RESTORE);
+                        }
                     }
+                    catch { }
                 }
-                catch { }
-            }
+            });
+            
+            // 不等待任务完成，让它在后台运行
         }
 
         private static bool CheckPsSuspend()

@@ -1,0 +1,7 @@
+// GTA V SCRIPT HOOK (build Aug 13 2025, v3586.0/889.22)
+//          (C) Alexander Blade 2015-2025
+[21:18:37] INIT: Started
+[21:18:37] INIT: Pool 2 extended
+[21:18:37] INIT: Pool 4 extended
+[21:18:37] INIT: Success, game version is VER_EN_1_0_889_22
+[21:18:37] INIT: Registering script 'NativeTrainer.asi' (0x00007FFB50E3A3C0)
